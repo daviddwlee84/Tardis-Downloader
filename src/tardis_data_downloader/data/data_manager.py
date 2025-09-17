@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 from tardis_data_downloader.utils.date_utils import DATE_TYPE, to_date_string
 from loguru import logger
+import requests
 
 
 # TODO: find all exchange set
@@ -29,6 +30,41 @@ class DATA_TYPE(StrEnum):
     LIQUIDATIONS = "liquidations"
 
 
+class TardisApi:
+    def __init__(self, http_proxy: str | None = None):
+
+        self.http_proxy = http_proxy
+
+    def _call_api(self, url: str) -> dict:
+        """Make a GET request to the Tardis API with proxy support"""
+        proxies = (
+            {"http": self.http_proxy, "https": self.http_proxy}
+            if self.http_proxy
+            else None
+        )
+        response = requests.get(url, proxies=proxies)
+        response.raise_for_status()
+        return response.json()
+
+    def get_exchange_details(self, exchange: str) -> dict:
+        """Get details for a specific exchange"""
+        url = f"https://api.tardis.dev/v1/exchanges/{exchange}"
+        try:
+            return self._call_api(url)
+        except Exception as e:
+            logger.error(f"Error fetching exchange details for {exchange}: {e}")
+            return {}
+
+    def get_exchanges(self) -> dict:
+        """Get list of all available exchanges"""
+        url = "https://api.tardis.dev/v1/exchanges/"
+        try:
+            return self._call_api(url)
+        except Exception as e:
+            logger.error(f"Error fetching exchanges list: {e}")
+            return {}
+
+
 class TardisDataManager:
     """
     Out path schema:
@@ -41,11 +77,13 @@ class TardisDataManager:
         root_dir: str | Path = "./datasets",
         exchange: EXCHANGE = EXCHANGE.DERIBIT,
         format: str = "csv",
+        http_proxy: str | None = None,
     ):
         self.root_dir = Path(root_dir)
         self.exchange = exchange
         self.format = format
         self.logger = logger.bind()
+        self.api = TardisApi(http_proxy=http_proxy)
 
     @staticmethod
     def default_file_name(
@@ -125,7 +163,6 @@ class TardisDataManager:
         date: DATE_TYPE,
         symbol: str,
         skip_existing: bool = True,
-        http_proxy: str | None = None,
     ) -> bool:
         from tardis_dev import datasets
         from dotenv import load_dotenv, find_dotenv
@@ -148,95 +185,20 @@ class TardisDataManager:
                 download_dir=self.root_dir,
                 get_filename=self.default_file_name,
                 api_key=os.getenv("TARDIS_API_KEY"),
-                http_proxy=http_proxy,
+                http_proxy=self.api.http_proxy,
             )
         except Exception as e:
             self.logger.error(f"Error downloading data: {e}")
             return False
         return True
 
-    def get_exchange_details(self, http_proxy: str | None = None) -> dict:
-        import requests
+    def get_exchange_details(self) -> dict:
+        """Get details for the current exchange"""
+        return self.api.get_exchange_details(self.exchange)
 
-        url = f"https://api.tardis.dev/v1/exchanges/{self.exchange}"
-        proxies = {"http": http_proxy, "https": http_proxy} if http_proxy else None
-        try:
-            response = requests.get(url, proxies=proxies)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            self.logger.error(f"Error fetching exchange details: {e}")
-            return {}
-
-    def get_exchanges(self, http_proxy: str | None = None) -> dict:
-        import requests
-
-        url = f"https://api.tardis.dev/v1/exchanges/"
-        proxies = {"http": http_proxy, "https": http_proxy} if http_proxy else None
-        try:
-            response = requests.get(url, proxies=proxies)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            self.logger.error(f"Error fetching exchange details: {e}")
-            return {}
-
-    # Deprecated
-    #     def get_exchange_details(
-    #         self, http_proxy: str | None = None, async_mode: bool = False
-    #     ) -> dict:
-    #         if async_mode:
-    #             return self.get_exchange_details_async(http_proxy)
-    #         else:
-    #             return self.get_exchange_details_sync(http_proxy)
-    #
-    #     def get_exchange_details_async(
-    #         self, http_proxy: str | None = None, use_tardis_dev: bool = True
-    #     ) -> dict:
-    #         if use_tardis_dev:
-    #             from tardis_dev.get_exchange_details import get_exchange_details
-    #
-    #             return get_exchange_details(self.exchange, http_proxy)
-    #
-    #         import asyncio
-    #         import aiohttp
-    #
-    #         async def get_exchange_details_async():
-    #             async with aiohttp.ClientSession(trust_env=True) as session:
-    #                 async with session.get(
-    #                     f"https://api.tardis.dev/v1/exchanges/{self.exchange}",
-    #                     proxy=http_proxy,
-    #                 ) as response:
-    #                     return await response.json()
-    #
-    #         try:
-    #             # Try to get existing event loop
-    #             loop = asyncio.get_event_loop()
-    #             if loop.is_running():
-    #                 # If loop is already running, we need to create a new thread with its own loop
-    #                 import concurrent.futures
-    #
-    #                 with concurrent.futures.ThreadPoolExecutor() as executor:
-    #                     future = executor.submit(asyncio.run, get_exchange_details_async())
-    #                     return future.result()
-    #             else:
-    #                 return loop.run_until_complete(get_exchange_details_async())
-    #         except RuntimeError:
-    #             # No event loop in current thread, create a new one
-    #             return asyncio.run(get_exchange_details_async())
-    #
-    #     def get_exchange_details_sync(self, http_proxy: str | None = None) -> dict:
-    #         import requests
-    #
-    #         url = f"https://api.tardis.dev/v1/exchanges/{self.exchange}"
-    #         proxies = {"http": http_proxy, "https": http_proxy} if http_proxy else None
-    #         try:
-    #             response = requests.get(url, proxies=proxies)
-    #             response.raise_for_status()
-    #             return response.json()
-    #         except Exception as e:
-    #             self.logger.error(f"Error fetching exchange details: {e}")
-    #             return {}
+    def get_exchanges(self) -> dict:
+        """Get list of all available exchanges"""
+        return self.api.get_exchanges()
 
     def list_exchange_symbols(self) -> list[str]:
         # TODO: wrapper of get_exchange_details
