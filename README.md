@@ -1,4 +1,4 @@
-# Tardis
+# Tardis Data Downloader
 
 Tardis data download and loading
 

@@ -4,6 +4,7 @@ from enum import StrEnum
 import pandas as pd
 from datetime import datetime
 from tardis_data_downloader.utils.date_utils import DATE_TYPE, to_date_string
+from loguru import logger
 
 
 # TODO: find all exchange set
@@ -44,6 +45,7 @@ class TardisDataManager:
         self.root_dir = Path(root_dir)
         self.exchange = exchange
         self.format = format
+        self.logger = logger.bind()
 
     @staticmethod
     def default_file_name(
@@ -114,3 +116,50 @@ class TardisDataManager:
             case _:
                 raise ValueError(f"Unsupported format: {self.format}")
         return df
+
+    # === Online Data ===
+
+    def download_data(
+        self,
+        data_type: DATA_TYPE,
+        date: DATE_TYPE,
+        symbol: str,
+        skip_existing: bool = True,
+        http_proxy: str | None = None,
+    ) -> bool:
+        from tardis_dev import datasets
+        from dotenv import load_dotenv, find_dotenv
+        import os
+
+        _ = load_dotenv(find_dotenv())
+
+        try:
+            if skip_existing and self.get_path(data_type, date, symbol).exists():
+                self.logger.info(
+                    f"Data already exists: {self.get_path(data_type, date, symbol)}. Skip downloading."
+                )
+                return True
+            datasets.download(
+                exchange=self.exchange,
+                data_types=[data_type],
+                symbols=[symbol],
+                from_date=date,
+                to_date=date,
+                download_dir=self.root_dir,
+                get_filename=self.default_file_name,
+                api_key=os.getenv("TARDIS_API_KEY"),
+                http_proxy=http_proxy,
+            )
+        except Exception as e:
+            self.logger.error(f"Error downloading data: {e}")
+            return False
+        return True
+
+    def get_exchange_details(self, http_proxy: str | None = None) -> dict:
+        from tardis_dev.get_exchange_details import get_exchange_details
+
+        return get_exchange_details(self.exchange, http_proxy)
+
+    def list_exchange_symbols(self) -> list[str]:
+        # TODO: wrapper of get_exchange_details
+        pass
