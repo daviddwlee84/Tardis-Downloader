@@ -412,24 +412,42 @@ class TardisDataManager:
                         )
             return results
         else:
-            from tardis_dev import datasets
+            import asyncio
+            import concurrent.futures
+            from tardis_dev.datasets.download import download_async, default_timeout
             from dotenv import load_dotenv, find_dotenv
             import os
 
             _ = load_dotenv(find_dotenv())
 
-            try:
-                datasets.download(
+            async def _run_download():
+                await download_async(
                     exchange=self.exchange,
                     data_types=data_types,
                     symbols=symbols,
                     from_date=start_date,
                     to_date=end_date,
+                    format=self.format,
+                    api_key=os.getenv("TARDIS_API_KEY"),
                     download_dir=self.root_dir,
                     get_filename=self.default_file_name,
-                    api_key=os.getenv("TARDIS_API_KEY"),
+                    timeout=default_timeout,
+                    download_url_base="datasets.tardis.dev",
+                    concurrency=5,
                     http_proxy=self.api.http_proxy,
                 )
+
+            try:
+                # Check if we're in an existing event loop (e.g., Jupyter notebook)
+                try:
+                    asyncio.get_running_loop()
+                    # We're in a running event loop, run in a thread to avoid event loop conflicts
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(asyncio.run, _run_download())
+                        future.result()  # Wait for completion
+                except RuntimeError:
+                    # No running event loop, use asyncio.run directly
+                    asyncio.run(_run_download())
             except Exception as e:
                 self.logger.error(f"Error downloading data: {e}")
                 return False
