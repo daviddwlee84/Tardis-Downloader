@@ -29,8 +29,8 @@ def run_streamlit(
     current_dir = Path(__file__).parent
     overview_path = current_dir / "Overview.py"
 
-    # Build streamlit command
-    cmd = ["streamlit", "run", str(overview_path)]
+    # Build streamlit command using Python module to ensure it works in any environment
+    cmd = [sys.executable, "-m", "streamlit", "run", str(overview_path)]
 
     # Add file change detection options
     if run_on_save:
