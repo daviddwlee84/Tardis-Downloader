@@ -12,6 +12,7 @@ dependencies = [
     "fire>=0.7.1",
     "loguru>=0.7.3",
     "pandas>=2.3.2",
+    "plotly>=6.3.0",
     "python-dotenv>=1.1.1",
     "streamlit>=1.49.1",
     "tardis-dev>=2.1.2",
