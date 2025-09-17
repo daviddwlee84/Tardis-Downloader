@@ -38,3 +38,4 @@ url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 [project.scripts]
 tardis-data-downloader = "tardis_data_downloader.cli.tardis_data_downloader:main"
 td-fire = "tardis_data_downloader.cli.fire_download_wrapper:main"
+td-ui = "tardis_data_downloader.ui.streamlit_runner:main"

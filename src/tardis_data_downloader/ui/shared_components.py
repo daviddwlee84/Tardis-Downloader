@@ -84,7 +84,11 @@ def sidebar_controls() -> DataOptions:
             date = st.selectbox(
                 "Date (YYYY-MM-DD)",
                 options=dates,
-                index=dates.index(st.session_state["data_options"].date),
+                index=(
+                    dates.index(st.session_state["data_options"].date)
+                    if st.session_state["data_options"].date in dates
+                    else 0
+                ),
             )
         else:
             date = st.text_input(
