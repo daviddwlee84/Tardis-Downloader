@@ -219,7 +219,7 @@ with col1:
         color_discrete_sequence=px.colors.qualitative.Set3,
     )
     fig_pie.update_traces(textposition="inside", textinfo="percent+label")
-    st.plotly_chart(fig_pie, use_container_width=True)
+    st.plotly_chart(fig_pie, width="stretch")
 
 with col2:
     # Bar Chart
@@ -232,7 +232,7 @@ with col2:
         color_discrete_sequence=px.colors.qualitative.Set3,
     )
     fig_bar.update_layout(showlegend=False)
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, width="stretch")
 
 # Statistics Table
 st.subheader("📈 Detailed Statistics")
@@ -261,7 +261,7 @@ for symbol_type, count in type_counts.items():
     )
 
 stats_df = pd.DataFrame(stats_data)
-st.dataframe(stats_df, use_container_width=True)
+st.dataframe(stats_df, width="stretch")
 
 # Active vs Inactive Analysis
 st.subheader("📊 Active vs Inactive Symbols")
@@ -290,7 +290,7 @@ with col1:
             color_discrete_sequence=["#00ff00", "#ff6b6b"],
         )
         fig_active_pie.update_traces(textposition="inside", textinfo="percent+label")
-        st.plotly_chart(fig_active_pie, use_container_width=True)
+        st.plotly_chart(fig_active_pie, width="stretch")
     else:
         st.info("No data to display for the current filters")
 
@@ -323,7 +323,7 @@ with col2:
         barmode="stack",
         color_discrete_sequence=["#00ff00", "#ff6b6b"],
     )
-    st.plotly_chart(fig_active_bar, use_container_width=True)
+    st.plotly_chart(fig_active_bar, width="stretch")
 
 # Timeline Analysis
 st.header("⏰ Timeline Analysis")
@@ -345,7 +345,7 @@ fig_yearly = px.bar(
     barmode="stack",
     color_discrete_sequence=px.colors.qualitative.Set3,
 )
-st.plotly_chart(fig_yearly, use_container_width=True)
+st.plotly_chart(fig_yearly, width="stretch")
 
 # Monthly distribution for recent years
 st.subheader("📆 Monthly Distribution (Last 3 Years)")
@@ -379,7 +379,7 @@ fig_monthly = px.line(
     color_discrete_sequence=px.colors.qualitative.Set3,
 )
 fig_monthly.update_xaxes(tickangle=45)
-st.plotly_chart(fig_monthly, use_container_width=True)
+st.plotly_chart(fig_monthly, width="stretch")
 
 # Inactive Symbols Timeline
 st.subheader("⏸️ Symbol Deactivation Timeline")
@@ -407,7 +407,7 @@ if not inactive_symbols.empty:
         barmode="stack",
         color_discrete_sequence=px.colors.qualitative.Set3,
     )
-    st.plotly_chart(fig_inactive, use_container_width=True)
+    st.plotly_chart(fig_inactive, width="stretch")
 
     # Top deactivation years
     deactivation_years = inactive_symbols["availableTo_year"].value_counts().head(10)
@@ -439,7 +439,7 @@ with col1:
 
         st.dataframe(
             sample_df[display_columns],
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "id": st.column_config.TextColumn("Symbol ID", width="medium"),
                 "type": st.column_config.TextColumn("Type", width="small"),
@@ -478,7 +478,7 @@ with col2:
 
             st.dataframe(
                 search_results[display_columns],
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "id": st.column_config.TextColumn("Symbol ID", width="large"),
                     "type": st.column_config.TextColumn("Type", width="small"),

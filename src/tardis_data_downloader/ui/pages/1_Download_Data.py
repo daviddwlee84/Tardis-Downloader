@@ -146,7 +146,7 @@ def main():
     )
 
     # Download button
-    if st.button("🚀 Start Download", type="primary", use_container_width=True):
+    if st.button("🚀 Start Download", type="primary", width="stretch"):
 
         if not symbols.strip():
             st.error("❌ Symbols cannot be empty")
