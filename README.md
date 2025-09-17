@@ -11,6 +11,12 @@ Tardis data download and loading
 >
 > [data types](./docs/data-types.md)
 
+## Getting Started
+
+```bash
+uv sync --all-groups
+```
+
 ## Data Concept
 
 ### CSV Dataset

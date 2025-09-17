@@ -5,6 +5,7 @@ description = "Tardis data download and loading"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fire>=0.7.1",
     "python-dotenv>=1.1.1",
     "tardis-dev>=2.1.2",
 ]
@@ -33,3 +34,4 @@ url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [project.scripts]
 tardis-data-downloader = "tardis_data_downloader.cli.tardis_data_downloader:main"
+td-fire = "tardis_data_downloader.cli.fire_download_wrapper:main"
