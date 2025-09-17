@@ -1,13 +1,12 @@
 import streamlit as st
-import sys
-from pathlib import Path
-from datetime import datetime, date
+from typing import Literal
+from datetime import date
 from tardis_dev import datasets
 from dotenv import load_dotenv, find_dotenv
 import os
 
 # Import our components
-from tardis_data_downloader.data.data_manager import TardisDataManager
+from tardis_data_downloader.data.data_manager import TardisDataManager, DATA_TYPE
 from tardis_data_downloader.ui.shared_components import (
     DEFAULT_DATA_ROOT,
     EXCHANGE_LIST,
@@ -18,6 +17,37 @@ _ = load_dotenv(find_dotenv())
 
 
 st.set_page_config(page_title="Download Data", page_icon="📥")
+
+
+DATA_TYPE_LIST = [dt.value for dt in DATA_TYPE]
+
+
+def get_data_types(mode: Literal["str", "multiselect"] = "multiselect") -> list[str]:
+    match mode:
+        case "str":
+            # Data types (comma-separated)
+            data_types = st.text_input(
+                "Data Types",
+                value="trades",
+                help="Data types to download (comma-separated, e.g., 'trades,incremental_book_L2')",
+            )
+
+            # Validate inputs
+            if not data_types.strip():
+                st.error("❌ Data Types cannot be empty")
+                return
+
+            data_types = data_types.split(",")
+        case "multiselect":
+            data_types = st.multiselect(
+                "Data Types",
+                options=DATA_TYPE_LIST,
+                default=[DATA_TYPE.TRADES.value],
+            )
+        case _:
+            raise ValueError(f"Invalid mode: {mode}")
+
+    return data_types
 
 
 def main():
@@ -36,12 +66,7 @@ def main():
             help="Select the cryptocurrency exchange to download data from",
         )
 
-        # Data types (comma-separated)
-        data_types = st.text_input(
-            "Data Types",
-            value="trades",
-            help="Data types to download (comma-separated, e.g., 'trades,incremental_book_L2')",
-        )
+        data_types = get_data_types(mode="multiselect")
 
         # Symbols (comma-separated)
         symbols = st.text_input(
@@ -111,10 +136,6 @@ def main():
 
     # Download button
     if st.button("🚀 Start Download", type="primary", use_container_width=True):
-        # Validate inputs
-        if not data_types.strip():
-            st.error("❌ Data Types cannot be empty")
-            return
 
         if not symbols.strip():
             st.error("❌ Symbols cannot be empty")
@@ -131,7 +152,7 @@ def main():
         # Prepare parameters
         download_params = {
             "exchange": exchange,
-            "data_types": data_types.split(","),
+            "data_types": data_types,
             "symbols": symbols.split(","),
             "from_date": from_date_str,
             "to_date": to_date_str,

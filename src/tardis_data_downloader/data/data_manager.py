@@ -19,6 +19,13 @@ class EXCHANGE(StrEnum):
 
 class DATA_TYPE(StrEnum):
     TRADES = "trades"
+    INCREMENTAL_BOOK_L2 = "incremental_book_L2"
+    BOOK_SNAPSHOT_25 = "book_snapshot_25"
+    BOOK_SNAPSHOT_5 = "book_snapshot_5"
+    OPTIONS_CHAIN = "options_chain"
+    QUOTES = "quotes"
+    DERIVATIVE_TICKER = "derivative_ticker"
+    LIQUIDATIONS = "liquidations"
 
 
 class TardisDataManager:
