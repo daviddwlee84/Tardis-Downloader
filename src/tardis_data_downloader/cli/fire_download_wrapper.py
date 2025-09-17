@@ -3,6 +3,7 @@ from tardis_dev import datasets
 from tardis_dev.get_exchange_details import get_exchange_details
 from dotenv import load_dotenv, find_dotenv
 import sys
+from tardis_data_downloader.data.data_manager import TardisDataManager
 
 
 _ = load_dotenv(find_dotenv())
@@ -80,6 +81,7 @@ class TardisCLI:
                 download_url_base=download_url_base,
                 concurrency=concurrency,
                 http_proxy=http_proxy,
+                get_filename=TardisDataManager.default_file_name,
             )
 
             print("下載完成！")
@@ -140,3 +142,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# fire.Fire(datasets.download)
