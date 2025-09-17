@@ -10,6 +10,7 @@ from tardis_data_downloader.data.data_manager import TardisDataManager, DATA_TYP
 from tardis_data_downloader.ui.shared_components import (
     DEFAULT_DATA_ROOT,
     EXCHANGE_LIST,
+    init_session_state,
 )
 
 
@@ -52,6 +53,14 @@ def get_data_types(mode: Literal["str", "multiselect"] = "multiselect") -> list[
 
 def main():
     st.title("📥 Download Market Data")
+
+    init_session_state()
+    data_root = st.text_input(
+        "Data Root",
+        value=st.session_state["data_options"].data_root,
+        help="Root directory, contains exchange/data_type/year-month-day/symbol.csv.gz subdirectories",
+    )
+    st.session_state["data_options"].data_root = data_root
 
     # Main download parameters
     col1, col2 = st.columns(2)
@@ -132,7 +141,9 @@ def main():
             )
 
     # Download directory info
-    st.info(f"📁 Data will be downloaded to: `{DEFAULT_DATA_ROOT}`")
+    st.info(
+        f"📁 Data will be downloaded to: `{data_root}/{exchange}/data_type/YYYY-MM-DD/symbol.csv.gz`"
+    )
 
     # Download button
     if st.button("🚀 Start Download", type="primary", use_container_width=True):
@@ -158,7 +169,7 @@ def main():
             "to_date": to_date_str,
             "format": format_type,
             "api_key": api_key,
-            "download_dir": str(DEFAULT_DATA_ROOT),
+            "download_dir": str(data_root),
             "download_url_base": download_url_base,
             "concurrency": concurrency,
             "http_proxy": http_proxy if http_proxy.strip() else None,

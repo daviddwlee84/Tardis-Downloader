@@ -13,11 +13,20 @@ import streamlit as st
 import pandas as pd
 
 
-DEFAULT_DATA_ROOT = Path("./datasets").resolve()
-if not DEFAULT_DATA_ROOT.exists():
-    DEFAULT_DATA_ROOT = (
-        Path(__file__).parent.parent.parent.parent / "datasets"
-    ).resolve()
+# Check if we're running from project (has 'src' in path) or from installed package
+current_file_path = Path(__file__).resolve()
+path_parts = current_file_path.parts
+
+# If 'src' is in the path, we're in a project - use project-relative path
+if "src" in path_parts:
+    DEFAULT_DATA_ROOT = Path("./datasets").resolve()
+    if not DEFAULT_DATA_ROOT.exists():
+        DEFAULT_DATA_ROOT = (
+            Path(__file__).parent.parent.parent.parent / "datasets"
+        ).resolve()
+# If no 'src' in path, we're likely in an installed package - use ~/datasets
+else:
+    DEFAULT_DATA_ROOT = Path.home() / "datasets"
 
 
 # TODO: consider if we want to add data_type to the data options
