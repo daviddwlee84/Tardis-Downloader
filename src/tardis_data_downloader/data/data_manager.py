@@ -8,6 +8,7 @@ import requests
 import time
 import hashlib
 from tardis_data_downloader.data.models import SYMBOL_TYPE, SymbolInfo
+import tardis_data_downloader.utils as utils
 
 
 class EXCHANGE(StrEnum):
@@ -373,6 +374,67 @@ class TardisDataManager:
             return False
         return True
 
+    def batch_download_by_date_range(
+        self,
+        data_types: list[DATA_TYPE] | None = None,
+        symbols: list[str] | None = None,
+        symbol_types: list[SYMBOL_TYPE] | None = None,
+        start_date: DATE_TYPE | None = None,
+        end_date: DATE_TYPE | None = None,
+        sequential: bool = True,
+    ) -> pd.Series | bool:
+        """
+        TODO: if None then use all
+        TODO: if sequential then use tqdm progress bar
+        TODO: even if non-sequential, still need to check completeness of each symbol/data-type/date
+        TODO: add skip_existing option (but maybe this only works for sequential mode)
+        """
+        # if symbols is not None and symbol_types is not None:
+        #     raise ValueError("symbol and symbol_types cannot be provided together")
+
+        # if data_types is None:
+        # TODO: list exchange data types
+        #     data_types = self.list_data_types()
+
+        # if symbols is None:
+        #     symbols = self.list_exchange_symbols(symbol_types)
+
+        if sequential:
+            results = {}
+            for symbol in symbols:
+                for data_type in data_types:
+                    # NOTE: inclusive left is to match the behavior of tardis-dev.datasets.download
+                    for date in utils.date_range(
+                        start_date, end_date, inclusive="left"
+                    ):
+                        results[(data_type, date, symbol)] = self.download_data(
+                            data_type, date, symbol
+                        )
+            return results
+        else:
+            from tardis_dev import datasets
+            from dotenv import load_dotenv, find_dotenv
+            import os
+
+            _ = load_dotenv(find_dotenv())
+
+            try:
+                datasets.download(
+                    exchange=self.exchange,
+                    data_types=data_types,
+                    symbols=symbols,
+                    from_date=start_date,
+                    to_date=end_date,
+                    download_dir=self.root_dir,
+                    get_filename=self.default_file_name,
+                    api_key=os.getenv("TARDIS_API_KEY"),
+                    http_proxy=self.api.http_proxy,
+                )
+            except Exception as e:
+                self.logger.error(f"Error downloading data: {e}")
+                return False
+            return True
+
     def list_exchanges(self) -> list[str]:
         raw_exchanges = self.api.get_exchanges()
         exchanges = [e["id"] for e in raw_exchanges]
@@ -427,6 +489,15 @@ if __name__ == "__main__":
     print(manager.list_exchanges())
     print(len(manager.list_exchanges()))
     print(manager.list_exchange_symbols())
+    print(
+        manager.batch_download_by_date_range(
+            data_types=[DATA_TYPE.TRADES],
+            symbols=["BTC-PERPETUAL"],
+            start_date="2025-09-15",
+            end_date="2025-09-16",
+            sequential=False,
+        )
+    )
     import ipdb
 
     ipdb.set_trace()
