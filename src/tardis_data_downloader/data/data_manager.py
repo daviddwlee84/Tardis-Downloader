@@ -253,6 +253,7 @@ class TardisDataManager:
         root_dir: str | Path = "./datasets",
         exchange: EXCHANGE = EXCHANGE.DERIBIT,
         format: str = "csv",
+        api_key: str | None = None,  # NOTE: for download data only
         http_proxy: str | None = None,
         enable_cache: bool = True,
         cache_ttl_seconds: int = 3600,
@@ -265,7 +266,15 @@ class TardisDataManager:
             http_proxy=http_proxy,
             enable_cache=enable_cache,
             cache_ttl_seconds=cache_ttl_seconds,
+            # TODO: not sure if we want to pass api_key to TardisApi (construct Bearer token)
         )
+
+        from dotenv import load_dotenv, find_dotenv
+        import os
+
+        _ = load_dotenv(find_dotenv())
+
+        self.api_key = api_key or os.getenv("TARDIS_API_KEY")
 
     @staticmethod
     def default_file_name(
@@ -366,7 +375,7 @@ class TardisDataManager:
                 to_date=date,
                 download_dir=self.root_dir,
                 get_filename=self.default_file_name,
-                api_key=os.getenv("TARDIS_API_KEY"),
+                api_key=self.api_key,
                 http_proxy=self.api.http_proxy,
             )
         except Exception as e:
@@ -415,10 +424,6 @@ class TardisDataManager:
             import asyncio
             import concurrent.futures
             from tardis_dev.datasets.download import download_async, default_timeout
-            from dotenv import load_dotenv, find_dotenv
-            import os
-
-            _ = load_dotenv(find_dotenv())
 
             async def _run_download():
                 await download_async(
@@ -428,7 +433,7 @@ class TardisDataManager:
                     from_date=start_date,
                     to_date=end_date,
                     format=self.format,
-                    api_key=os.getenv("TARDIS_API_KEY"),
+                    api_key=self.api_key,
                     download_dir=self.root_dir,
                     get_filename=self.default_file_name,
                     timeout=default_timeout,
