@@ -8,15 +8,66 @@ from loguru import logger
 import requests
 
 
-# TODO: find all exchange set
 class EXCHANGE(StrEnum):
+    BITMEX = "bitmex"
     DERIBIT = "deribit"
-    BINANCE = "binance"
     BINANCE_FUTURES = "binance-futures"
     BINANCE_DELIVERY = "binance-delivery"
-    BITMEX = "bitmex"
-    BYBIT = "bybit"
+    BINANCE_OPTIONS = "binance-options"
+    BINANCE_EUROPEAN_OPTIONS = "binance-european-options"
+    BINANCE = "binance"
+    FTX = "ftx"
+    OKEX_FUTURES = "okex-futures"
+    OKEX_OPTIONS = "okex-options"
+    OKEX_SWAP = "okex-swap"
     OKEX = "okex"
+    OKEX_SPREADS = "okex-spreads"
+    HUOBI_DM = "huobi-dm"
+    HUOBI_DM_SWAP = "huobi-dm-swap"
+    HUOBI_DM_LINEAR_SWAP = "huobi-dm-linear-swap"
+    HUOBI_DM_OPTIONS = "huobi-dm-options"
+    HUOBI = "huobi"
+    BITFINEX_DERIVATIVES = "bitfinex-derivatives"
+    BITFINEX = "bitfinex"
+    COINBASE = "coinbase"
+    COINBASE_INTERNATIONAL = "coinbase-international"
+    CRYPTOFACILITIES = "cryptofacilities"
+    KRAKEN = "kraken"
+    BITSTAMP = "bitstamp"
+    GEMINI = "gemini"
+    POLONIEX = "poloniex"
+    UPBIT = "upbit"
+    BYBIT = "bybit"
+    BYBIT_SPOT = "bybit-spot"
+    BYBIT_OPTIONS = "bybit-options"
+    PHEMEX = "phemex"
+    ASCENDEX = "ascendex"
+    KUCOIN = "kucoin"
+    KUCOIN_FUTURES = "kucoin-futures"
+    SERUM = "serum"
+    MANGO = "mango"
+    DYDX = "dydx"
+    DYDX_V4 = "dydx-v4"
+    DELTA = "delta"
+    FTX_US = "ftx-us"
+    BINANCE_US = "binance-us"
+    GATE_IO_FUTURES = "gate-io-futures"
+    GATE_IO = "gate-io"
+    OKCOIN = "okcoin"
+    BITFLYER = "bitflyer"
+    HITBTC = "hitbtc"
+    COINFLEX = "coinflex"
+    CRYPTO_COM = "crypto-com"
+    CRYPTO_COM_DERIVATIVES = "crypto-com-derivatives"
+    BINANCE_JERSEY = "binance-jersey"
+    BINANCE_DEX = "binance-dex"
+    STAR_ATLAS = "star-atlas"
+    BITNOMIAL = "bitnomial"
+    WOO_X = "woo-x"
+    BLOCKCHAIN_COM = "blockchain-com"
+    BITGET = "bitget"
+    BITGET_FUTURES = "bitget-futures"
+    HYPERLIQUID = "hyperliquid"
 
 
 class DATA_TYPE(StrEnum):
@@ -28,6 +79,14 @@ class DATA_TYPE(StrEnum):
     QUOTES = "quotes"
     DERIVATIVE_TICKER = "derivative_ticker"
     LIQUIDATIONS = "liquidations"
+
+
+class SYMBOL_TYPE(StrEnum):
+    SPOT = "spot"
+    PERPETUAL = "perpetual"
+    FUTURES = "futures"
+    OPTION = "option"
+    COMBO = "combo"
 
 
 class TardisApi:
@@ -194,12 +253,33 @@ class TardisDataManager:
 
     def get_exchange_details(self) -> dict:
         """Get details for the current exchange"""
+        # TODO: deprecate this (remember to change reference in UI page)
         return self.api.get_exchange_details(self.exchange)
 
     def get_exchanges(self) -> dict:
         """Get list of all available exchanges"""
+        # TODO: deprecate this (remember to change reference in UI page)
         return self.api.get_exchanges()
 
-    def list_exchange_symbols(self) -> list[str]:
+    def list_exchanges(self) -> list[str]:
+        raw_exchanges = self.api.get_exchanges()
+        exchanges = [e["id"] for e in raw_exchanges]
+        if not all(exchange in EXCHANGE for exchange in exchanges):
+            self.logger.warning(
+                f"Found exchanges not in EXCHANGE Enum, maybe there are some new exchanges, please check."
+            )
+        return exchanges
+
+    def list_exchange_symbols(
+        self, symbol_type: SYMBOL_TYPE | None = None
+    ) -> list[str]:
         # TODO: wrapper of get_exchange_details
+        # TODO: filter symbol types
         pass
+
+
+if __name__ == "__main__":
+    # python -m src.tardis_data_downloader.data.data_manager
+    manager = TardisDataManager()
+    print(manager.list_exchanges())
+    print(len(manager.list_exchanges()))
