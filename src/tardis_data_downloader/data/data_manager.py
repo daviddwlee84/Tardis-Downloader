@@ -31,7 +31,7 @@ class TardisDataManager:
     def __init__(
         self,
         root_dir: str | Path = "./datasets",
-        exchange: EXCHANGE = "dongwu-api",
+        exchange: EXCHANGE = EXCHANGE.DERIBIT,
         format: str = "csv",
     ):
         self.root_dir = Path(root_dir)
