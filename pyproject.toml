@@ -8,3 +8,28 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "tardis-dev>=2.1.2",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "ipdb>=0.13.13",
+    "ipykernel>=6.30.1",
+    "ipywidgets>=8.1.7",
+    "nbconvert>=7.16.6",
+]
+
+# By default hatchling will build the package in the src/package_name_with_underscores directory
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# https://github.com/astral-sh/uv/issues/6925
+[tool.uv]
+index-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+
+
+[project.scripts]
+tardis-data-downloader = "tardis_data_downloader.cli.tardis_data_downloader:main"
