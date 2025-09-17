@@ -13,8 +13,29 @@ Tardis data download and loading
 
 ## Getting Started
 
+Direct use CLI
+
+```bash
+uv tool install git+https://github.com/daviddwlee84/Tardis-Downloader.git
+
+uv tool install git+ssh://git@github.com/daviddwlee84/Tardis-Downloader.git -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+```
+
+Clone this repo
+
 ```bash
 uv sync --all-groups
+```
+
+```bash
+td-fire --help
+td-fire list-exchanges
+td-fire download --help
+td-fire get-exchange-details --help
+```
+
+```bash
+td-ui
 ```
 
 ## Data Concept

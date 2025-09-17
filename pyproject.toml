@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "Tardis data download and loading"
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [
+    {name = "Da-Wei Lee"},
+]
+keywords = ["tardis", "crypto", "data"]
 dependencies = [
     "fire>=0.7.1",
     "pandas>=2.3.2",
@@ -21,6 +25,9 @@ dev = [
     "ipywidgets>=8.1.7",
     "nbconvert>=7.16.6",
 ]
+
+[project.urls]
+Repository = "https://github.com/daviddwlee84/Tardis-Downloader"
 
 # By default hatchling will build the package in the src/package_name_with_underscores directory
 [build-system]
