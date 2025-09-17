@@ -155,10 +155,61 @@ class TardisDataManager:
             return False
         return True
 
-    def get_exchange_details(self, http_proxy: str | None = None) -> dict:
-        from tardis_dev.get_exchange_details import get_exchange_details
+    def get_exchange_details(
+        self, http_proxy: str | None = None, async_mode: bool = False
+    ) -> dict:
+        if async_mode:
+            return self.get_exchange_details_async(http_proxy)
+        else:
+            return self.get_exchange_details_sync(http_proxy)
 
-        return get_exchange_details(self.exchange, http_proxy)
+    def get_exchange_details_async(
+        self, http_proxy: str | None = None, use_tardis_dev: bool = True
+    ) -> dict:
+        if use_tardis_dev:
+            from tardis_dev.get_exchange_details import get_exchange_details
+
+            return get_exchange_details(self.exchange, http_proxy)
+
+        import asyncio
+        import aiohttp
+
+        async def get_exchange_details_async():
+            async with aiohttp.ClientSession(trust_env=True) as session:
+                async with session.get(
+                    f"https://api.tardis.dev/v1/exchanges/{self.exchange}",
+                    proxy=http_proxy,
+                ) as response:
+                    return await response.json()
+
+        try:
+            # Try to get existing event loop
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is already running, we need to create a new thread with its own loop
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, get_exchange_details_async())
+                    return future.result()
+            else:
+                return loop.run_until_complete(get_exchange_details_async())
+        except RuntimeError:
+            # No event loop in current thread, create a new one
+            return asyncio.run(get_exchange_details_async())
+
+    def get_exchange_details_sync(self, http_proxy: str | None = None) -> dict:
+        import requests
+
+        url = f"https://api.tardis.dev/v1/exchanges/{self.exchange}"
+        proxies = {"http": http_proxy, "https": http_proxy} if http_proxy else None
+        try:
+            response = requests.get(url, proxies=proxies)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            self.logger.error(f"Error fetching exchange details: {e}")
+            return {}
 
     def list_exchange_symbols(self) -> list[str]:
         # TODO: wrapper of get_exchange_details
