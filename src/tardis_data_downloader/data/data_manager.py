@@ -1,14 +1,13 @@
-from typing import Final
 from pathlib import Path
 from enum import StrEnum
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from tardis_data_downloader.utils.date_utils import DATE_TYPE, to_date_string
 from loguru import logger
 import requests
 import time
 import hashlib
-import json
+from tardis_data_downloader.data.models import SYMBOL_TYPE, SymbolInfo
 
 
 class EXCHANGE(StrEnum):
@@ -84,14 +83,6 @@ class DATA_TYPE(StrEnum):
     LIQUIDATIONS = "liquidations"
 
 
-class SYMBOL_TYPE(StrEnum):
-    SPOT = "spot"
-    PERPETUAL = "perpetual"
-    FUTURES = "futures"
-    OPTION = "option"
-    COMBO = "combo"
-
-
 class SimpleCache:
     """
     Simple in-memory cache with TTL support
@@ -154,7 +145,7 @@ class TardisApi:
     def __init__(
         self,
         http_proxy: str | None = None,
-        enable_cache: bool = False,
+        enable_cache: bool = True,
         cache_ttl_seconds: int = 3600,
     ):
         self.http_proxy = http_proxy
@@ -262,7 +253,7 @@ class TardisDataManager:
         exchange: EXCHANGE = EXCHANGE.DERIBIT,
         format: str = "csv",
         http_proxy: str | None = None,
-        enable_cache: bool = False,
+        enable_cache: bool = True,
         cache_ttl_seconds: int = 3600,
     ):
         self.root_dir = Path(root_dir)
@@ -395,9 +386,25 @@ class TardisDataManager:
         self, symbol_types: list[SYMBOL_TYPE] | None = None
     ) -> list[str]:
         raw_exchange_details = self.api.get_exchange_details(self.exchange)
-        symbols = raw_exchange_details["availableSymbols"]
+        symbols = [symbol for symbol in raw_exchange_details["availableSymbols"]]
         if symbol_types is not None:
             symbols = [symbol for symbol in symbols if symbol["type"] in symbol_types]
+        return [symbol["id"] for symbol in symbols]
+
+    def list_exchange_symbol_infos(
+        self, symbol_types: list[SYMBOL_TYPE] | None = None
+    ) -> list[SymbolInfo]:
+        # BUG:
+        # pydantic_core._pydantic_core.ValidationError: 1 validation error for SymbolInfo
+        # availableTo
+        # Field required [type=missing, input_value={'id': 'BTC-PERPETUAL', '...19-03-30T00:00:00.000Z'}, input_type=dict]
+        #     For further information visit https://errors.pydantic.dev/2.11/v/missing
+        raw_exchange_details = self.api.get_exchange_details(self.exchange)
+        symbols = [
+            SymbolInfo(**symbol) for symbol in raw_exchange_details["availableSymbols"]
+        ]
+        if symbol_types is not None:
+            symbols = [symbol for symbol in symbols if symbol.type in symbol_types]
         return symbols
 
     # === Cache Management Methods ===
