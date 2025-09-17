@@ -389,3 +389,302 @@ exchanges = manager.get_exchanges()
 
 ---
 
+_**User (2025-09-17 09:28Z)**_
+
+`❌ Error loading data: TardisDataManager.get_exchanges() takes 1 positional argument but 2 were given`
+請相應更新 @3_Exchange_Detail.py @4_Exchange_Detail_(detail).py @5_Exchanges_(detail).py 中的調用 都換成對TardisApi
+
+---
+
+_**Assistant**_
+
+<think><details><summary>Thought Process</summary>The user is getting an error because the TardisDataManager.get_exchanges() method no longer accepts an http_proxy parameter, but the UI pages are still trying to pass it. I need to update the UI pages to:
+
+
+## Investigating UI update
+
+- The error occurs because TardisDataManager.get_exchanges() no longer supports the http_proxy parameter.</details></think>
+
+---
+
+## Todo List
+
+- [-] Update 3_Exchange_Detail.py to use TardisApi directly
+- [ ] Update 4_Exchange_Detail_(detail).py to use TardisApi directly
+- [ ] Update 5_Exchanges_(detail).py to use TardisApi directly
+
+---
+
+<think><details><summary>Thought Process</summary>Let me start with the first file: 3_Exchange_Detail.py
+</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/3_Exchange_Detail.py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -2,5 +2,5 @@
+  from tardis_data_downloader.data.data_manager import (
+      EXCHANGE,
+-     TardisDataManager,
++     TardisApi,
+  )
+  import json
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the get_exchange_detail function to use TardisApi instead of TardisDataManager. I need to change the function to accept http_proxy and create a TardisApi instance with it.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/3_Exchange_Detail.py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -23,7 +23,7 @@
+  
+  @st.cache_data
+- def get_exchange_detail(exchange: str, _http_proxy: str | None = None) -> dict:
+-     manager = TardisDataManager(exchange=exchange)
+-     return manager.get_exchange_details(http_proxy)
++ def get_exchange_detail(exchange: str, http_proxy: str | None = None) -> dict:
++     api = TardisApi(http_proxy=http_proxy)
++     return api.get_exchange_details(exchange)
+  
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the exchange list section in the expander to use TardisApi instead of TardisDataManager.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/3_Exchange_Detail.py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 3
+
+```diff
+@@ -39,7 +39,6 @@
+  
+  with st.expander("Exchange List"):
+-     # TODO: need improve (and maybe add a TardisAPI class)
+-     manager = TardisDataManager()
+-     exchange_list = manager.get_exchanges(http_proxy)
++     api = TardisApi(http_proxy=http_proxy)
++     exchange_list = api.get_exchanges()
+      st.json(exchange_list)
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now let me move to the second file: 4_Exchange_Detail_(detail).py. I need to make similar changes to this file.</details></think>
+
+---
+
+## Todo List
+
+- [x] Update 3_Exchange_Detail.py to use TardisApi directly
+- [-] Update 4_Exchange_Detail_(detail).py to use TardisApi directly
+- [ ] Update 5_Exchanges_(detail).py to use TardisApi directly
+
+---
+
+<think><details><summary>Thought Process</summary>Now let me update the second file: 4_Exchange_Detail_(detail).py. I need to:</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/4_Exchange_Detail_(detail).py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -16,5 +16,5 @@
+  
+  # Import the data manager
+- from tardis_data_downloader.data.data_manager import EXCHANGE, TardisDataManager
++ from tardis_data_downloader.data.data_manager import EXCHANGE, TardisApi
+  
+  # Exchange selection
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the get_exchange_detail function in this file. Looking at the code, it's similar to the previous file.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/4_Exchange_Detail_(detail).py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -36,7 +36,7 @@
+  # Cache function to get exchange detail data
+  @st.cache_data
+- def get_exchange_detail(exchange: str, _http_proxy: str | None = None) -> dict:
+-     manager = TardisDataManager(exchange=exchange)
+-     return manager.get_exchange_details(http_proxy)
++ def get_exchange_detail(exchange: str, http_proxy: str | None = None) -> dict:
++     api = TardisApi(http_proxy=http_proxy)
++     return api.get_exchange_details(exchange)
+  
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now let me move to the third and final file: 5_Exchanges_(detail).py. I need to update this file as well.</details></think>
+
+---
+
+## Todo List
+
+- [x] Update 3_Exchange_Detail.py to use TardisApi directly
+- [x] Update 4_Exchange_Detail_(detail).py to use TardisApi directly
+- [-] Update 5_Exchanges_(detail).py to use TardisApi directly
+
+---
+
+<think><details><summary>Thought Process</summary>Now let me update the third file: 5_Exchanges_(detail).py. Looking at this file, I need to:</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/5_Exchanges_(detail).py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -12,5 +12,5 @@
+  
+  # Import the data manager
+- from tardis_data_downloader.data.data_manager import TardisDataManager
++ from tardis_data_downloader.data.data_manager import TardisApi
+  
+  # Optional parameters in expander
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now I need to update the get_exchanges_data function in this file. Looking at the code, it's similar to the previous files.</details></think>
+
+---
+
+<details><summary>Edit file: /Users/daviddwlee84/Documents/Program/Tadronaut/Tardis/src/tardis_data_downloader/ui/pages/5_Exchanges_(detail).py</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -23,7 +23,7 @@
+  # Cache function to get exchanges data
+  @st.cache_data
+- def get_exchanges_data(_http_proxy: str | None = None) -> list:
+-     manager = TardisDataManager()
+-     return manager.get_exchanges(http_proxy)
++ def get_exchanges_data(http_proxy: str | None = None) -> list:
++     api = TardisApi(http_proxy=http_proxy)
++     return api.get_exchanges()
+  
+  
+```
+
+</details>
+
+---
+
+<think><details><summary>Thought Process</summary>Now let me check if there are any linter errors in the updated files.</details></think>
+
+---
+
+
+
+---
+
+<think><details><summary>Thought Process</summary>Great! No linter errors. Let me mark the final task as completed.</details></think>
+
+---
+
+## Todo List
+
+- [x] Update 3_Exchange_Detail.py to use TardisApi directly
+- [x] Update 4_Exchange_Detail_(detail).py to use TardisApi directly
+- [x] Update 5_Exchanges_(detail).py to use TardisApi directly
+
+---
+
+<think><details><summary>Thought Process</summary>Perfect! I've successfully updated all three UI pages to use TardisApi directly instead of TardisDataManager. Let me summarize what I did:
+
+
+## Updating UI Pages
+
+- Successfully modified three UI pages to integrate TardisApi directly, replacing TardisDataManager.
+- Updated 3_Exchange_Detail.</details></think>
+
+---
+
+完成！我已經成功更新了所有三個 UI 頁面，讓它們直接使用 `TardisApi` 而不是 `TardisDataManager`。這樣就能解決參數不匹配的錯誤。
+
+## 主要變更：
+
+### 1. **3_Exchange_Detail.py**
+- 將 import 從 `TardisDataManager` 改為 `TardisApi`
+- 更新 `get_exchange_detail` 函數直接建立 `TardisApi` 實例並調用 `get_exchange_details`
+- 更新 Exchange List 區塊也使用 `TardisApi`
+
+### 2. **4_Exchange_Detail_(detail).py**
+- 將 import 從 `TardisDataManager` 改為 `TardisApi`
+- 更新 `get_exchange_detail` 函數直接建立 `TardisApi` 實例並調用 `get_exchange_details`
+
+### 3. **5_Exchanges_(detail).py**
+- 將 import 從 `TardisDataManager` 改為 `TardisApi`
+- 更新 `get_exchanges_data` 函數直接建立 `TardisApi` 實例並調用 `get_exchanges`
+
+## 解決的問題：
+
+- ✅ 移除了參數不匹配錯誤：`TardisDataManager.get_exchanges() takes 1 positional argument but 2 were given`
+- ✅ HTTP proxy 正確傳遞給 `TardisApi` 建構函數
+- ✅ 保持了原有的功能和使用者體驗
+- ✅ 沒有引入任何 linter 錯誤
+
+現在所有 UI 頁面都能正確地調用 Tardis API，而不會再出現參數錯誤了。API 調用現在更加直接和清晰，因為直接使用專門設計的 `TardisApi` 類別。
+
+---
+

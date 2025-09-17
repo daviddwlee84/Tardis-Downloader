@@ -11,7 +11,7 @@ st.title("📊 All Exchanges Overview Analysis")
 st.set_page_config(layout="wide", page_icon="🌍")
 
 # Import the data manager
-from tardis_data_downloader.data.data_manager import TardisDataManager
+from tardis_data_downloader.data.data_manager import TardisApi
 
 # Optional parameters in expander
 with st.expander("Advanced Options"):
@@ -22,9 +22,9 @@ with st.expander("Advanced Options"):
 
 # Cache function to get exchanges data
 @st.cache_data
-def get_exchanges_data(_http_proxy: str | None = None) -> list:
-    manager = TardisDataManager()
-    return manager.get_exchanges(http_proxy)
+def get_exchanges_data(http_proxy: str | None = None) -> list:
+    api = TardisApi(http_proxy=http_proxy)
+    return api.get_exchanges()
 
 
 # Use session state to track fetched data

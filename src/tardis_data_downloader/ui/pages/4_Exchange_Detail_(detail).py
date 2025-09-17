@@ -15,7 +15,7 @@ st.title("🔍 Deribit Exchange Detail Analysis")
 st.set_page_config(layout="wide", page_icon="📊")
 
 # Import the data manager
-from tardis_data_downloader.data.data_manager import EXCHANGE, TardisDataManager
+from tardis_data_downloader.data.data_manager import EXCHANGE, TardisApi
 
 # Exchange selection
 EXCHANGE_LIST = [e.value for e in EXCHANGE]
@@ -35,9 +35,9 @@ with st.expander("Advanced Options"):
 
 # Cache function to get exchange detail data
 @st.cache_data
-def get_exchange_detail(exchange: str, _http_proxy: str | None = None) -> dict:
-    manager = TardisDataManager(exchange=exchange)
-    return manager.get_exchange_details(http_proxy)
+def get_exchange_detail(exchange: str, http_proxy: str | None = None) -> dict:
+    api = TardisApi(http_proxy=http_proxy)
+    return api.get_exchange_details(exchange)
 
 
 # Use session state to track fetched data and current exchange

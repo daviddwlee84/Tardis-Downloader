@@ -1,7 +1,7 @@
 import streamlit as st
 from tardis_data_downloader.data.data_manager import (
     EXCHANGE,
-    TardisDataManager,
+    TardisApi,
 )
 import json
 
@@ -22,9 +22,9 @@ with st.expander("Advanced Options"):
 
 
 @st.cache_data
-def get_exchange_detail(exchange: str, _http_proxy: str | None = None) -> dict:
-    manager = TardisDataManager(exchange=exchange)
-    return manager.get_exchange_details(http_proxy)
+def get_exchange_detail(exchange: str, http_proxy: str | None = None) -> dict:
+    api = TardisApi(http_proxy=http_proxy)
+    return api.get_exchange_details(exchange)
 
 
 # Use session state to track fetched data and current exchange
@@ -38,9 +38,8 @@ if st.session_state.current_exchange != exchange:
     st.session_state.current_exchange = exchange
 
 with st.expander("Exchange List"):
-    # TODO: need improve (and maybe add a TardisAPI class)
-    manager = TardisDataManager()
-    exchange_list = manager.get_exchanges(http_proxy)
+    api = TardisApi(http_proxy=http_proxy)
+    exchange_list = api.get_exchanges()
     st.json(exchange_list)
 
 # Button to fetch exchange details
