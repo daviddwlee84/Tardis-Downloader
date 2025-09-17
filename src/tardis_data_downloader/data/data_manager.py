@@ -2,10 +2,13 @@ from typing import Final
 from pathlib import Path
 from enum import StrEnum
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from tardis_data_downloader.utils.date_utils import DATE_TYPE, to_date_string
 from loguru import logger
 import requests
+import time
+import hashlib
+import json
 
 
 class EXCHANGE(StrEnum):
@@ -89,13 +92,91 @@ class SYMBOL_TYPE(StrEnum):
     COMBO = "combo"
 
 
-class TardisApi:
-    def __init__(self, http_proxy: str | None = None):
+class SimpleCache:
+    """
+    Simple in-memory cache with TTL support
 
+    TODO: default unlimited ttl
+    """
+
+    def __init__(self, default_ttl_seconds: int = 3600):
+        self.cache = {}
+        self.default_ttl = default_ttl_seconds
+
+    def _get_cache_key(self, url: str) -> str:
+        """Generate a cache key from URL"""
+        return hashlib.md5(url.encode()).hexdigest()
+
+    def get(self, url: str) -> dict | None:
+        """Get cached data if available and not expired"""
+        key = self._get_cache_key(url)
+        if key in self.cache:
+            data, timestamp, ttl = self.cache[key]
+            if time.time() - timestamp < ttl:
+                return data
+            else:
+                # Remove expired entry
+                del self.cache[key]
+        return None
+
+    def set(self, url: str, data: dict, ttl_seconds: int | None = None) -> None:
+        """Cache data with optional TTL"""
+        key = self._get_cache_key(url)
+        ttl = ttl_seconds if ttl_seconds is not None else self.default_ttl
+        self.cache[key] = (data, time.time(), ttl)
+
+    def clear(self) -> None:
+        """Clear all cached data"""
+        self.cache.clear()
+
+    def get_stats(self) -> dict:
+        """Get cache statistics"""
+        total_entries = len(self.cache)
+        expired_entries = 0
+        current_time = time.time()
+
+        for key, (data, timestamp, ttl) in self.cache.items():
+            if current_time - timestamp >= ttl:
+                expired_entries += 1
+
+        return {
+            "total_entries": total_entries,
+            "expired_entries": expired_entries,
+            "active_entries": total_entries - expired_entries,
+        }
+
+
+class TardisApi:
+    """
+    Tardis API client with optional caching support
+    """
+
+    def __init__(
+        self,
+        http_proxy: str | None = None,
+        enable_cache: bool = False,
+        cache_ttl_seconds: int = 3600,
+    ):
         self.http_proxy = http_proxy
+        self.enable_cache = enable_cache
+        self.cache_ttl_seconds = cache_ttl_seconds
+
+        if self.enable_cache:
+            self.cache = SimpleCache(default_ttl_seconds=cache_ttl_seconds)
+        else:
+            self.cache = None
 
     def _call_api(self, url: str) -> dict:
-        """Make a GET request to the Tardis API with proxy support"""
+        """Make a GET request to the Tardis API with proxy support and optional caching"""
+        # Check cache first if enabled
+        if self.enable_cache and self.cache:
+            cached_data = self.cache.get(url)
+            if cached_data is not None:
+                logger.debug(f"Cache hit for URL: {url}")
+                return cached_data
+            logger.debug(f"Cache miss for URL: {url}")
+
+        # Make the API call
         proxies = (
             {"http": self.http_proxy, "https": self.http_proxy}
             if self.http_proxy
@@ -103,7 +184,14 @@ class TardisApi:
         )
         response = requests.get(url, proxies=proxies)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+
+        # Cache the response if caching is enabled
+        if self.enable_cache and self.cache:
+            self.cache.set(url, data, self.cache_ttl_seconds)
+            logger.debug(f"Cached response for URL: {url}")
+
+        return data
 
     def get_exchange_details(self, exchange: str) -> dict:
         """Get details for a specific exchange"""
@@ -123,6 +211,43 @@ class TardisApi:
             logger.error(f"Error fetching exchanges list: {e}")
             return {}
 
+    def clear_cache(self) -> None:
+        """Clear all cached data"""
+        if self.enable_cache and self.cache:
+            self.cache.clear()
+            logger.info("Cache cleared successfully")
+        else:
+            logger.warning("Caching is not enabled")
+
+    def get_cache_stats(self) -> dict:
+        """Get cache statistics"""
+        if self.enable_cache and self.cache:
+            return self.cache.get_stats()
+        else:
+            return {"error": "Caching is not enabled"}
+
+    def invalidate_cache_entry(self, url: str) -> bool:
+        """Invalidate a specific cache entry by URL"""
+        if self.enable_cache and self.cache:
+            # Since our SimpleCache doesn't have a direct invalidate method,
+            # we'll use a workaround by checking if the URL exists and then
+            # forcing a cache miss by temporarily modifying the cache
+            key = hashlib.md5(url.encode()).hexdigest()
+            if key in self.cache.cache:
+                del self.cache.cache[key]
+                logger.debug(f"Invalidated cache entry for URL: {url}")
+                return True
+            else:
+                logger.debug(f"No cache entry found for URL: {url}")
+                return False
+        else:
+            logger.warning("Caching is not enabled")
+            return False
+
+    def is_cache_enabled(self) -> bool:
+        """Check if caching is enabled"""
+        return self.enable_cache
+
 
 class TardisDataManager:
     """
@@ -137,12 +262,18 @@ class TardisDataManager:
         exchange: EXCHANGE = EXCHANGE.DERIBIT,
         format: str = "csv",
         http_proxy: str | None = None,
+        enable_cache: bool = False,
+        cache_ttl_seconds: int = 3600,
     ):
         self.root_dir = Path(root_dir)
         self.exchange = exchange
         self.format = format
         self.logger = logger.bind()
-        self.api = TardisApi(http_proxy=http_proxy)
+        self.api = TardisApi(
+            http_proxy=http_proxy,
+            enable_cache=enable_cache,
+            cache_ttl_seconds=cache_ttl_seconds,
+        )
 
     @staticmethod
     def default_file_name(
@@ -251,16 +382,6 @@ class TardisDataManager:
             return False
         return True
 
-    def get_exchange_details(self) -> dict:
-        """Get details for the current exchange"""
-        # TODO: deprecate this (remember to change reference in UI page)
-        return self.api.get_exchange_details(self.exchange)
-
-    def get_exchanges(self) -> dict:
-        """Get list of all available exchanges"""
-        # TODO: deprecate this (remember to change reference in UI page)
-        return self.api.get_exchanges()
-
     def list_exchanges(self) -> list[str]:
         raw_exchanges = self.api.get_exchanges()
         exchanges = [e["id"] for e in raw_exchanges]
@@ -271,11 +392,26 @@ class TardisDataManager:
         return exchanges
 
     def list_exchange_symbols(
-        self, symbol_type: SYMBOL_TYPE | None = None
+        self, symbol_types: list[SYMBOL_TYPE] | None = None
     ) -> list[str]:
-        # TODO: wrapper of get_exchange_details
-        # TODO: filter symbol types
-        pass
+        raw_exchange_details = self.api.get_exchange_details(self.exchange)
+        symbols = raw_exchange_details["availableSymbols"]
+        if symbol_types is not None:
+            symbols = [symbol for symbol in symbols if symbol["type"] in symbol_types]
+        return symbols
+
+    # === Cache Management Methods ===
+    def clear_cache(self) -> None:
+        """Clear all cached API data"""
+        self.api.clear_cache()
+
+    def get_cache_stats(self) -> dict:
+        """Get cache statistics"""
+        return self.api.get_cache_stats()
+
+    def is_cache_enabled(self) -> bool:
+        """Check if caching is enabled"""
+        return self.api.is_cache_enabled()
 
 
 if __name__ == "__main__":
@@ -283,3 +419,7 @@ if __name__ == "__main__":
     manager = TardisDataManager()
     print(manager.list_exchanges())
     print(len(manager.list_exchanges()))
+    print(manager.list_exchange_symbols())
+    import ipdb
+
+    ipdb.set_trace()
