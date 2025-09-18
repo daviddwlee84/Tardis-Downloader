@@ -355,11 +355,9 @@ class TardisDataManager:
         symbol: str,
         skip_existing: bool = True,
     ) -> bool:
-        from tardis_dev import datasets
-        from dotenv import load_dotenv, find_dotenv
-        import os
-
-        _ = load_dotenv(find_dotenv())
+        import asyncio
+        import concurrent.futures
+        from tardis_dev.datasets.download import download_async, default_timeout
 
         try:
             if skip_existing and self.get_path(data_type, date, symbol).exists():
@@ -367,17 +365,45 @@ class TardisDataManager:
                     f"Data already exists: {self.get_path(data_type, date, symbol)}. Skip downloading."
                 )
                 return True
-            datasets.download(
-                exchange=self.exchange,
-                data_types=[data_type],
-                symbols=[symbol],
-                from_date=date,
-                to_date=date,
-                download_dir=self.root_dir,
-                get_filename=self.default_file_name,
-                api_key=self.api_key,
-                http_proxy=self.api.http_proxy,
-            )
+
+            # Check if API key is available
+            if not self.api_key:
+                self.logger.error(
+                    "API key not found. Please set TARDIS_API_KEY environment variable or pass api_key parameter."
+                )
+                return False
+
+            # Convert date to string format for the API
+            date_str = to_date_string(date)
+
+            async def _run_single_download():
+                await download_async(
+                    exchange=self.exchange,
+                    data_types=[data_type],
+                    symbols=[symbol],
+                    from_date=date_str,
+                    to_date=date_str,
+                    format=self.format,
+                    api_key=self.api_key,
+                    download_dir=self.root_dir,
+                    get_filename=self.default_file_name,
+                    timeout=default_timeout,
+                    download_url_base="datasets.tardis.dev",
+                    concurrency=1,  # Single file download
+                    http_proxy=self.api.http_proxy,
+                )
+
+            # Check if we're in an existing event loop (e.g., Jupyter notebook, Google Colab)
+            try:
+                asyncio.get_running_loop()
+                # We're in a running event loop, run in a thread to avoid event loop conflicts
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, _run_single_download())
+                    future.result()  # Wait for completion
+            except RuntimeError:
+                # No running event loop, use asyncio.run directly
+                asyncio.run(_run_single_download())
+
         except Exception as e:
             self.logger.error(f"Error downloading data: {e}")
             return False
@@ -425,13 +451,17 @@ class TardisDataManager:
             import concurrent.futures
             from tardis_dev.datasets.download import download_async, default_timeout
 
+            # Convert dates to string format for the API
+            start_date_str = to_date_string(start_date)
+            end_date_str = to_date_string(end_date)
+
             async def _run_download():
                 await download_async(
                     exchange=self.exchange,
                     data_types=data_types,
                     symbols=symbols,
-                    from_date=start_date,
-                    to_date=end_date,
+                    from_date=start_date_str,
+                    to_date=end_date_str,
                     format=self.format,
                     api_key=self.api_key,
                     download_dir=self.root_dir,
