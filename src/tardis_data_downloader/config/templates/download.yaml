@@ -1,0 +1,128 @@
+# Tardis Data Download Configuration
+# ===================================
+# This configuration file defines download profiles for Tardis historical data.
+# 
+# Usage:
+#   td-fire config-download --config configs/download.yaml --profile hft_core
+#   td-fire incremental --config configs/download.yaml --profile hft_core
+
+version: "1.0"
+
+# Storage settings
+# ----------------
+# Where to store downloaded data (Single Source of Truth)
+storage:
+  root_dir: "./datasets"  # Can use ${DATA_ROOT} for env variable
+  format: "csv"  # Only CSV supported for SSOT
+
+# Download profiles
+# -----------------
+# Define multiple profiles for different use cases
+profiles:
+  # Core HFT data - BTC/ETH perpetuals from major exchanges
+  hft_core:
+    description: "Core HFT data - BTC/ETH perpetuals from top 3 exchanges"
+    exchanges:
+      - binance-futures
+      - bybit
+      - deribit
+    data_types:
+      - trades
+      - quotes
+      - incremental_book_L2
+    symbols:
+      binance-futures:
+        - BTCUSDT
+        - ETHUSDT
+      bybit:
+        - BTCUSDT
+        - ETHUSDT
+      deribit:
+        - BTC-PERPETUAL
+        - ETH-PERPETUAL
+    date_range:
+      start: "2024-01-01"
+      end: "2024-12-31"  # null = today
+
+  # Lightweight version without L2 orderbook data
+  hft_lite:
+    description: "Lightweight HFT data - trades and quotes only"
+    exchanges:
+      - binance-futures
+      - bybit
+    data_types:
+      - trades
+      - quotes
+      - derivative_ticker
+    symbols:
+      binance-futures:
+        - BTCUSDT
+        - ETHUSDT
+      bybit:
+        - BTCUSDT
+        - ETHUSDT
+    date_range:
+      start: "2024-01-01"
+      end: null  # Download up to today
+
+  # Altcoins for diversification
+  altcoins:
+    description: "Top altcoins for portfolio diversification"
+    exchanges:
+      - binance-futures
+    data_types:
+      - trades
+      - quotes
+    symbols:
+      binance-futures:
+        - SOLUSDT
+        - BNBUSDT
+        - XRPUSDT
+        - DOGEUSDT
+        - AVAXUSDT
+    date_range:
+      start: "2024-06-01"
+      end: null
+
+  # Deribit only (for options research)
+  deribit_perps:
+    description: "Deribit perpetuals with full orderbook"
+    exchanges:
+      - deribit
+    data_types:
+      - trades
+      - quotes
+      - incremental_book_L2
+      - derivative_ticker
+      - liquidations
+    symbols:
+      deribit:
+        - BTC-PERPETUAL
+        - ETH-PERPETUAL
+    date_range:
+      start: "2023-01-01"
+      end: null
+
+# Incremental download settings
+# -----------------------------
+# Configure automatic continuation of downloads
+incremental:
+  enabled: true
+  state_file: ".tardis_download_state.json"
+  auto_continue: true  # Continue from last downloaded date
+
+# Download settings
+# -----------------
+# Control download behavior
+download:
+  concurrency: 5  # Parallel downloads (1-20)
+  skip_existing: true  # Skip files that already exist
+  retry_attempts: 3
+  timeout_seconds: 300
+
+# Tardis Machine compatibility (optional)
+# ---------------------------------------
+# Create symlinks in Tardis Machine format for local server
+tardis_machine:
+  enabled: false
+  symlink_dir: "./tardis_cache"

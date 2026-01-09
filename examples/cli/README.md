@@ -119,3 +119,28 @@ td-fire download 'deribit' 'trades' 'BTC-PERPETUAL' '2023-01-01' '2023-01-02' --
 ## 腳本範例
 
 查看 `scripts/` 目錄中的自動化腳本範例。
+
+---
+
+```bash
+# Generate a config file
+td-fire init-config --format yaml --output configs/download.yaml
+
+# List available profiles
+td-fire list-profiles --config configs/download.yaml
+
+# Estimate storage requirements
+td-fire estimate --config configs/download.yaml --profile hft_core
+
+# Download with config (dry run first)
+td-fire config-download --config configs/download.yaml --profile hft_core --dry_run
+
+# Actual download
+td-fire config-download --config configs/download.yaml --profile hft_core
+
+# Incremental update (daily cron)
+td-fire incremental --config configs/download.yaml --profile hft_core
+
+# Check download status
+td-fire status --config configs/download.yaml
+```

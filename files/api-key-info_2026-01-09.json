@@ -1,0 +1,194 @@
+[
+    {
+        "exchange": "bitmex",
+        "accessType": "academic",
+        "from": "2019-03-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "deribit",
+        "accessType": "academic",
+        "from": "2019-03-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "binance-futures",
+        "accessType": "academic",
+        "from": "2019-11-17T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "binance-delivery",
+        "accessType": "academic",
+        "from": "2020-06-16T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "ftx",
+        "accessType": "academic",
+        "from": "2019-08-01T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "okex-swap",
+        "accessType": "academic",
+        "from": "2019-03-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "huobi-dm-swap",
+        "accessType": "academic",
+        "from": "2020-03-28T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "huobi-dm-linear-swap",
+        "accessType": "academic",
+        "from": "2020-10-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "bitflyer",
+        "accessType": "academic",
+        "from": "2019-08-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "cryptofacilities",
+        "accessType": "academic",
+        "from": "2019-03-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "bitfinex-derivatives",
+        "accessType": "academic",
+        "from": "2019-09-14T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "bybit",
+        "accessType": "academic",
+        "from": "2019-11-07T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "phemex",
+        "accessType": "academic",
+        "from": "2020-03-17T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "delta",
+        "accessType": "academic",
+        "from": "2020-03-30T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "gate-io-futures",
+        "accessType": "academic",
+        "from": "2020-07-01T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "coinflex",
+        "accessType": "academic",
+        "from": "2020-07-14T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "dydx",
+        "accessType": "academic",
+        "from": "2021-04-06T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "dydx-v4",
+        "accessType": "academic",
+        "from": "2024-08-23T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "woo-x",
+        "accessType": "academic",
+        "from": "2023-01-20T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "ascendex",
+        "accessType": "academic",
+        "from": "2021-03-28T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "crypto-com",
+        "accessType": "academic",
+        "from": "2022-06-01T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "kucoin-futures",
+        "accessType": "academic",
+        "from": "2024-01-25T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "bitget-futures",
+        "accessType": "academic",
+        "from": "2024-11-08T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    },
+    {
+        "exchange": "hyperliquid",
+        "accessType": "academic",
+        "from": "2024-10-29T00:00:00.000Z",
+        "to": "2026-04-30T00:00:00.000Z",
+        "symbols": [],
+        "dataPlan": "perpetuals"
+    }
+]

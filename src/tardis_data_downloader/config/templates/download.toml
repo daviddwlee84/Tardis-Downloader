@@ -1,0 +1,76 @@
+# Tardis Data Download Configuration (TOML format)
+# =================================================
+# Alternative to YAML format for those who prefer TOML.
+#
+# Usage:
+#   td-fire config-download --config configs/download.toml --profile hft_core
+
+version = "1.0"
+
+# Storage settings
+[storage]
+root_dir = "./datasets"
+format = "csv"
+
+# Download settings
+[download]
+concurrency = 5
+skip_existing = true
+retry_attempts = 3
+timeout_seconds = 300
+
+# Incremental download settings
+[incremental]
+enabled = true
+state_file = ".tardis_download_state.json"
+auto_continue = true
+
+# Tardis Machine compatibility
+[tardis_machine]
+enabled = false
+symlink_dir = "./tardis_cache"
+
+# ==================
+# Download Profiles
+# ==================
+
+# Core HFT profile
+[profiles.hft_core]
+description = "Core HFT data - BTC/ETH perpetuals"
+exchanges = ["binance-futures", "bybit", "deribit"]
+data_types = ["trades", "quotes", "incremental_book_L2"]
+
+[profiles.hft_core.symbols]
+binance-futures = ["BTCUSDT", "ETHUSDT"]
+bybit = ["BTCUSDT", "ETHUSDT"]
+deribit = ["BTC-PERPETUAL", "ETH-PERPETUAL"]
+
+[profiles.hft_core.date_range]
+start = "2024-01-01"
+end = "2024-12-31"
+
+# Lightweight profile
+[profiles.hft_lite]
+description = "Lightweight HFT data - trades and quotes only"
+exchanges = ["binance-futures", "bybit"]
+data_types = ["trades", "quotes", "derivative_ticker"]
+
+[profiles.hft_lite.symbols]
+binance-futures = ["BTCUSDT", "ETHUSDT"]
+bybit = ["BTCUSDT", "ETHUSDT"]
+
+[profiles.hft_lite.date_range]
+start = "2024-01-01"
+# end is omitted = null = today
+
+# Altcoins profile
+[profiles.altcoins]
+description = "Top altcoins for diversification"
+exchanges = ["binance-futures"]
+data_types = ["trades", "quotes"]
+
+[profiles.altcoins.symbols]
+binance-futures = ["SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "AVAXUSDT"]
+
+[profiles.altcoins.date_range]
+start = "2024-06-01"

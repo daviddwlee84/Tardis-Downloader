@@ -1,0 +1,54 @@
+# Tardis Data Download Configuration - Example
+# =============================================
+# Copy this file to 'download.yaml' and customize it for your needs.
+#
+# Usage:
+#   td-fire config-download --config configs/download.yaml --profile hft_core
+#   td-fire incremental --config configs/download.yaml --profile hft_core
+
+version: "1.0"
+
+# Storage settings
+storage:
+  root_dir: "./datasets"  # Where to store downloaded data (SSOT)
+  format: "csv"  # Only CSV supported
+
+# Download profiles - define your data requirements here
+profiles:
+  # Example: Core HFT data for BTC/ETH
+  hft_core:
+    description: "Core HFT data - BTC/ETH perpetuals from top exchanges"
+    exchanges:
+      - binance-futures
+      - bybit
+      - deribit
+    data_types:
+      - trades
+      - quotes
+      # - incremental_book_L2  # Uncomment for full orderbook (large!)
+    symbols:
+      binance-futures:
+        - BTCUSDT
+        - ETHUSDT
+      bybit:
+        - BTCUSDT
+        - ETHUSDT
+      deribit:
+        - BTC-PERPETUAL
+        - ETH-PERPETUAL
+    date_range:
+      start: "2024-01-01"
+      end: null  # null = today
+
+# Incremental download settings
+incremental:
+  enabled: true
+  state_file: ".tardis_download_state.json"
+  auto_continue: true
+
+# Download behavior
+download:
+  concurrency: 5
+  skip_existing: true
+  retry_attempts: 3
+  timeout_seconds: 300
