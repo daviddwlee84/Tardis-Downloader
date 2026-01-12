@@ -42,7 +42,7 @@ def _(mo):
 def _(mo):
     cli_args = mo.cli_args()
     is_script_mode = mo.app_meta().mode == "script"
-    return
+    return cli_args, is_script_mode
 
 
 @app.cell
@@ -71,12 +71,30 @@ def _(httpx, mo, os):
 
 
 @app.cell
-def _(fetch_api_key_info, mo, refresh_button):
-    _ = refresh_button.value
-    api_data, error = fetch_api_key_info()
+def _(fetch_api_key_info, is_script_mode, mo, refresh_button):
+    # In script mode, auto-fetch; in interactive mode, wait for button
+    if is_script_mode:
+        api_data, error = fetch_api_key_info()
+    else:
+        _ = refresh_button.value
+        api_data, error = fetch_api_key_info()
 
     if error:
-        mo.output.replace(mo.md(f"**Error:** {error}"))
+        if is_script_mode:
+            print(f"Error: {error}")
+        else:
+            mo.output.replace(mo.md(f"**Error:** {error}"))
+
+    # CLI output
+    if is_script_mode and api_data:
+        print("\n=== Tardis API Key Status ===\n")
+        print(f"Total Exchanges: {len(api_data)}")
+        print(f"Access Types: {', '.join(set(x['accessType'] for x in api_data))}")
+        print(f"Data Plans: {', '.join(set(x['dataPlan'] for x in api_data))}")
+        print("\nExchanges:")
+        for _item in api_data:
+            print(f"  {_item['exchange']:30s} {_item['accessType']:12s} {_item['from'][:10]} - {_item['to'][:10]}")
+        print()
     return api_data, error
 
 
@@ -137,7 +155,9 @@ def _(mo):
 
 
 @app.cell
-def _(alt, api_data, datetime, pl):
+def _(alt, api_data, datetime, mo, pl):
+    mo.stop(api_data is None, None)
+
     timeline_data = []
     for _item in api_data:
         from_dt = datetime.fromisoformat(_item["from"].replace("Z", "+00:00"))
@@ -169,6 +189,8 @@ def _(alt, api_data, datetime, pl):
 
 @app.cell
 def _(api_data, mo):
+    mo.stop(api_data is None, None)
+
     perpetuals_exchanges = [x["exchange"] for x in api_data if x.get("dataPlan") == "perpetuals"]
 
     mo.md(f"""
@@ -188,14 +210,15 @@ def _(mo):
 
     ## CLI Usage
 
-    Run this notebook from command line:
-
     ```bash
-    # Interactive mode
+    # Interactive mode (opens browser UI)
     marimo run notebooks/marimos/api_status.py
 
-    # Or using uv
-    uv run marimo run notebooks/marimos/api_status.py
+    # CLI mode - print API status to terminal
+    python notebooks/marimos/api_status.py
+
+    # Using uv
+    uv run python notebooks/marimos/api_status.py
     ```
     """)
     return

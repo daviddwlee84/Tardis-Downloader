@@ -25,7 +25,7 @@ def _():
     import os
     from pathlib import Path
     from datetime import datetime
-    return Path, json, mo, pl
+    return Path, httpx, json, mo, pl
 
 
 @app.cell
@@ -44,7 +44,7 @@ def _(mo):
 def _(mo):
     cli_args = mo.cli_args()
     is_script_mode = mo.app_meta().mode == "script"
-    return
+    return cli_args, is_script_mode
 
 
 @app.cell
@@ -56,31 +56,89 @@ def _(Path, json, mo):
     if exchanges_file.exists():
         with open(exchanges_file) as f:
             exchanges_data = json.load(f)
-        mo.output.replace(mo.md(f"✅ Loaded {len(exchanges_data)} exchanges from local cache"))
+        mo.output.replace(
+            mo.md(f"✅ Loaded {len(exchanges_data)} exchanges from local cache")
+        )
     else:
         exchanges_data = []
-        mo.output.replace(mo.md("⚠️ Local exchanges file not found. Use the fetch button below."))
+        mo.output.replace(
+            mo.md("⚠️ Local exchanges file not found. Use the fetch button below.")
+        )
     return (exchanges_data,)
 
 
 @app.cell
-def _(exchanges_data, mo, pl):
+def _(cli_args, exchanges_data, httpx, is_script_mode, mo, pl):
     mo.stop(not exchanges_data, mo.md("No exchange data available"))
+
+    # Handle CLI --list-exchanges
+    if is_script_mode and "list-exchanges" in cli_args:
+        print("\n=== Available Exchanges ===\n")
+        for ex in exchanges_data:
+            if not ex.get("delisted", False):
+                print(f"  {ex['id']:30s} {ex['name']}")
+        print()
+
+    # Handle CLI --exchange with --fetch
+    if is_script_mode and cli_args.get("exchange") and "fetch" in cli_args:
+        _exchange_id = cli_args.get("exchange")
+        print(f"\n=== Fetching symbols for {_exchange_id} ===\n")
+        try:
+            _response = httpx.get(
+                f"https://api.tardis.dev/v1/exchanges/{_exchange_id}", timeout=30.0
+            )
+            _response.raise_for_status()
+            _details = _response.json()
+            _symbols = _details.get("availableSymbols", [])
+            _data_types = _details.get("availableDataTypes", [])
+
+            print(f"Exchange: {_details.get('name', _exchange_id)}")
+            print(f"Available Since: {_details.get('availableSince', 'N/A')[:10]}")
+            print(f"Data Types: {', '.join(_data_types)}")
+            print(f"\nTotal Symbols: {len(_symbols)}")
+
+            # Group by type
+            _type_counts = {}
+            for _s in _symbols:
+                if isinstance(_s, dict):
+                    _t = _s.get("type", "unknown")
+                    _type_counts[_t] = _type_counts.get(_t, 0) + 1
+            print("\nSymbols by Type:")
+            for _t, _count in sorted(_type_counts.items()):
+                print(f"  {_t}: {_count}")
+
+            # Show perpetuals
+            _perpetuals = [
+                _s.get("id")
+                for _s in _symbols
+                if isinstance(_s, dict) and _s.get("type") == "perpetual"
+            ]
+            if _perpetuals:
+                print(f"\nPerpetuals ({len(_perpetuals)}):")
+                for _p in _perpetuals[:20]:
+                    print(f"  - {_p}")
+                if len(_perpetuals) > 20:
+                    print(f"  ... and {len(_perpetuals) - 20} more")
+            print()
+        except Exception as _e:
+            print(f"Error: {_e}")
 
     exchange_records = []
     for ex in exchanges_data:
         available_since = ex.get("availableSince", "")
         available_to = ex.get("availableTo", "")
 
-        exchange_records.append({
-            "ID": ex["id"],
-            "Name": ex["name"],
-            "Enabled": "✅" if ex.get("enabled", False) else "❌",
-            "Delisted": "⚠️" if ex.get("delisted", False) else "",
-            "Available Since": available_since[:10] if available_since else "N/A",
-            "Available To": available_to[:10] if available_to else "Present",
-            "Channels": len(ex.get("availableChannels", [])),
-        })
+        exchange_records.append(
+            {
+                "ID": ex["id"],
+                "Name": ex["name"],
+                "Enabled": "✅" if ex.get("enabled", False) else "❌",
+                "Delisted": "⚠️" if ex.get("delisted", False) else "",
+                "Available Since": available_since[:10] if available_since else "N/A",
+                "Available To": available_to[:10] if available_to else "Present",
+                "Channels": len(ex.get("availableChannels", [])),
+            }
+        )
 
     exchanges_df = pl.DataFrame(exchange_records)
     return (exchanges_df,)
@@ -125,15 +183,22 @@ def _(mo):
 
 @app.cell
 def _(exchanges_data, mo, show_delisted):
-    exchange_options = sorted([
-        ex["id"] for ex in exchanges_data 
-        if show_delisted.value or not ex.get("delisted", False)
-    ])
+    exchange_options = sorted(
+        [
+            ex["id"]
+            for ex in exchanges_data
+            if show_delisted.value or not ex.get("delisted", False)
+        ]
+    )
 
     exchange_selector = mo.ui.dropdown(
         options=exchange_options,
-        value="binance-futures" if "binance-futures" in exchange_options else exchange_options[0] if exchange_options else None,
-        label="Select Exchange"
+        value=(
+            "binance-futures"
+            if "binance-futures" in exchange_options
+            else exchange_options[0] if exchange_options else None
+        ),
+        label="Select Exchange",
     )
     exchange_selector
     return (exchange_selector,)
@@ -144,8 +209,7 @@ def _(exchange_selector, exchanges_data, mo):
     mo.stop(not exchange_selector.value, mo.md("Select an exchange to view details"))
 
     selected_exchange = next(
-        (ex for ex in exchanges_data if ex["id"] == exchange_selector.value), 
-        None
+        (ex for ex in exchanges_data if ex["id"] == exchange_selector.value), None
     )
     return (selected_exchange,)
 
@@ -156,7 +220,8 @@ def _(mo, selected_exchange):
 
     channels = selected_exchange.get("availableChannels", [])
 
-    mo.md(f"""
+    mo.md(
+        f"""
     ### {selected_exchange['name']} (`{selected_exchange['id']}`)
 
     - **Available Since:** {selected_exchange.get('availableSince', 'N/A')[:10]}
@@ -167,7 +232,8 @@ def _(mo, selected_exchange):
     #### Available Channels ({len(channels)})
 
     {', '.join(f'`{ch}`' for ch in channels)}
-    """)
+    """
+    )
     return
 
 
@@ -181,19 +247,27 @@ def _(mo):
 
 @app.cell
 def _(exchange_selector, mo):
-    fetch_symbols_btn = mo.ui.run_button(label=f"🔍 Fetch Symbols for {exchange_selector.value}")
+    fetch_symbols_btn = mo.ui.run_button(
+        label=f"🔍 Fetch Symbols for {exchange_selector.value}"
+    )
     fetch_symbols_btn
     return (fetch_symbols_btn,)
 
 
 @app.cell
-def _(exchange_selector, fetch_symbols_btn, mo):
-    mo.stop(not fetch_symbols_btn.value, mo.md("Click the button above to fetch live symbol data"))
-
-    from tardis_dev import get_exchange_details
+def _(exchange_selector, fetch_symbols_btn, httpx, mo):
+    mo.stop(
+        not fetch_symbols_btn.value,
+        mo.md("Click the button above to fetch live symbol data"),
+    )
 
     try:
-        details = get_exchange_details(exchange_selector.value)
+        response = httpx.get(
+            f"https://api.tardis.dev/v1/exchanges/{exchange_selector.value}",
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        details = response.json()
         symbols_list = details.get("availableSymbols", [])
         available_data_types = details.get("availableDataTypes", [])
         mo.output.replace(mo.md(f"✅ Fetched {len(symbols_list)} symbols"))
@@ -208,13 +282,15 @@ def _(exchange_selector, fetch_symbols_btn, mo):
 def _(available_data_types, mo, symbols_list):
     mo.stop(not symbols_list, mo.md("No symbols loaded. Click fetch button above."))
 
-    mo.md(f"""
+    mo.md(
+        f"""
     ### Available Data Types
 
     {', '.join(f'`{dt}`' for dt in available_data_types) if available_data_types else 'Not available'}
 
     ### Symbols ({len(symbols_list)} total)
-    """)
+    """
+    )
     return
 
 
@@ -222,18 +298,16 @@ def _(available_data_types, mo, symbols_list):
 def _(mo, symbols_list):
     mo.stop(not symbols_list, None)
 
-    symbol_types = list(set(s.get("type", "unknown") for s in symbols_list if isinstance(s, dict)))
+    symbol_types = list(
+        set(s.get("type", "unknown") for s in symbols_list if isinstance(s, dict))
+    )
 
     type_filter = mo.ui.dropdown(
-        options=["All"] + sorted(symbol_types),
-        value="All",
-        label="Filter by Type"
+        options=["All"] + sorted(symbol_types), value="All", label="Filter by Type"
     )
 
     symbol_search = mo.ui.text(
-        value="",
-        label="Search Symbol",
-        placeholder="e.g., BTC, ETH"
+        value="", label="Search Symbol", placeholder="e.g., BTC, ETH"
     )
 
     mo.hstack([type_filter, symbol_search])
@@ -247,19 +321,31 @@ def _(mo, pl, symbol_search, symbols_list, type_filter):
     symbol_records = []
     for sym in symbols_list:
         if isinstance(sym, dict):
-            symbol_records.append({
-                "Symbol": sym.get("id", "N/A"),
-                "Type": sym.get("type", "unknown"),
-                "Available Since": sym.get("availableSince", "N/A")[:10] if sym.get("availableSince") else "N/A",
-                "Available To": sym.get("availableTo", "Present")[:10] if sym.get("availableTo") else "Present"
-            })
+            symbol_records.append(
+                {
+                    "Symbol": sym.get("id", "N/A"),
+                    "Type": sym.get("type", "unknown"),
+                    "Available Since": (
+                        sym.get("availableSince", "N/A")[:10]
+                        if sym.get("availableSince")
+                        else "N/A"
+                    ),
+                    "Available To": (
+                        sym.get("availableTo", "Present")[:10]
+                        if sym.get("availableTo")
+                        else "Present"
+                    ),
+                }
+            )
         else:
-            symbol_records.append({
-                "Symbol": str(sym),
-                "Type": "unknown",
-                "Available Since": "N/A",
-                "Available To": "Present"
-            })
+            symbol_records.append(
+                {
+                    "Symbol": str(sym),
+                    "Type": "unknown",
+                    "Available Since": "N/A",
+                    "Available To": "Present",
+                }
+            )
 
     symbols_df = pl.DataFrame(symbol_records)
 
@@ -285,9 +371,12 @@ def _(filtered_symbols, mo):
 
 @app.cell
 def _(filtered_symbols, mo):
-    mo.stop(filtered_symbols is None or len(filtered_symbols) == 0, mo.md("No symbols match the filter"))
+    mo.stop(
+        filtered_symbols is None or len(filtered_symbols) == 0,
+        mo.md("No symbols match the filter"),
+    )
 
-    mo.ui.table(filtered_symbols.head(100), selection=None)
+    mo.ui.table(filtered_symbols, selection=None)
     return
 
 
@@ -311,11 +400,17 @@ def _(mo):
     ## CLI Usage
 
     ```bash
-    # Interactive mode
+    # Interactive mode (opens browser UI)
     marimo run notebooks/marimos/data_explorer.py
 
-    # Or using uv
-    uv run marimo run notebooks/marimos/data_explorer.py
+    # CLI mode - list all exchanges
+    marimo run notebooks/marimos/data_explorer.py -- --list-exchanges
+
+    # CLI mode - fetch symbols for an exchange
+    marimo run notebooks/marimos/data_explorer.py -- --exchange binance-futures --fetch
+
+    # Using uv
+    uv run marimo run notebooks/marimos/data_explorer.py -- --list-exchanges
     ```
     """)
     return

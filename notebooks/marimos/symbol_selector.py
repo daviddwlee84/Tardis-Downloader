@@ -40,10 +40,76 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(datetime, mo, timedelta, yaml):
     cli_args = mo.cli_args()
     is_script_mode = mo.app_meta().mode == "script"
-    return
+
+    # CLI mode: generate default config and print
+    if is_script_mode:
+        _preset = cli_args.get("preset", "core")
+        _start = cli_args.get("start", str((datetime.now() - timedelta(days=30)).date()))
+        _end = cli_args.get("end", str((datetime.now() - timedelta(days=1)).date()))
+
+        _presets = {
+            "core": {
+                "description": "Core BTC/ETH perpetuals from top exchanges",
+                "exchanges": ["binance-futures", "bybit", "deribit"],
+                "data_types": ["trades", "quotes", "derivative_ticker"],
+                "symbols": {
+                    "binance-futures": ["BTCUSDT", "ETHUSDT"],
+                    "bybit": ["BTCUSDT", "ETHUSDT"],
+                    "deribit": ["BTC-PERPETUAL", "ETH-PERPETUAL"],
+                }
+            },
+            "ml": {
+                "description": "ML training data with full orderbook",
+                "exchanges": ["binance-futures", "bybit", "deribit"],
+                "data_types": ["trades", "quotes", "incremental_book_L2", "derivative_ticker"],
+                "symbols": {
+                    "binance-futures": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT"],
+                    "bybit": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
+                    "deribit": ["BTC-PERPETUAL", "ETH-PERPETUAL"],
+                }
+            },
+            "hft": {
+                "description": "HFT research - trades and quotes only",
+                "exchanges": ["binance-futures", "bybit"],
+                "data_types": ["trades", "quotes"],
+                "symbols": {
+                    "binance-futures": ["BTCUSDT", "ETHUSDT"],
+                    "bybit": ["BTCUSDT", "ETHUSDT"],
+                }
+            },
+        }
+
+        if "list-presets" in cli_args:
+            print("\n=== Available Presets ===\n")
+            for _name, _info in _presets.items():
+                print(f"  {_name:12s} - {_info['description']}")
+            print("\nUsage: python symbol_selector.py -- --preset ml --start 2024-01-01 --end 2024-12-31\n")
+        elif "generate" in cli_args or _preset:
+            _selected = _presets.get(_preset, _presets["core"])
+            _config = {
+                "version": "1.0",
+                "storage": {"root_dir": "./datasets", "format": "csv"},
+                "profiles": {
+                    f"{_preset}_profile": {
+                        "description": _selected["description"],
+                        "exchanges": _selected["exchanges"],
+                        "data_types": _selected["data_types"],
+                        "symbols": _selected["symbols"],
+                        "date_range": {"start": _start, "end": _end}
+                    }
+                },
+                "incremental": {"enabled": True, "state_file": ".tardis_download_state.json", "auto_continue": True},
+                "download": {"concurrency": 5, "skip_existing": True, "retry_attempts": 3, "timeout_seconds": 300}
+            }
+            print(f"\n=== Generated Config (preset: {_preset}) ===\n")
+            print(yaml.dump(_config, default_flow_style=False, sort_keys=False))
+            print("# Save to: configs/download.yaml")
+            print(f"# Run: td-fire config-download --config configs/download.yaml --profile {_preset}_profile\n")
+
+    return cli_args, is_script_mode
 
 
 @app.cell
@@ -509,11 +575,19 @@ def _(mo):
     ## CLI Usage
 
     ```bash
-    # Interactive mode
+    # Interactive mode (opens browser UI)
     marimo run notebooks/marimos/symbol_selector.py
 
-    # Or using uv
-    uv run marimo run notebooks/marimos/symbol_selector.py
+    # CLI mode - list available presets
+    python notebooks/marimos/symbol_selector.py -- --list-presets
+
+    # CLI mode - generate config with preset
+    python notebooks/marimos/symbol_selector.py -- --preset core
+    python notebooks/marimos/symbol_selector.py -- --preset ml --start 2024-01-01 --end 2024-12-31
+    python notebooks/marimos/symbol_selector.py -- --preset hft
+
+    # Using uv
+    uv run python notebooks/marimos/symbol_selector.py -- --preset ml
     ```
     """)
     return
