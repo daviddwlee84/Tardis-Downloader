@@ -99,6 +99,20 @@ class TardisMachineConfig(BaseModel):
     )
 
 
+class IndexConfig(BaseModel):
+    """Configuration for metadata indexing."""
+
+    enabled: bool = Field(default=True, description="Enable metadata indexing")
+    index_file: str = Field(
+        default=".tardis_index.json",
+        description="Path to the metadata index file",
+    )
+    auto_update: bool = Field(
+        default=True,
+        description="Automatically update index after downloads",
+    )
+
+
 class DownloadConfig(BaseModel):
     """Root configuration model for Tardis Data Downloader."""
 
@@ -110,6 +124,7 @@ class DownloadConfig(BaseModel):
     incremental: IncrementalConfig = Field(default_factory=IncrementalConfig)
     download: DownloadSettings = Field(default_factory=DownloadSettings)
     tardis_machine: TardisMachineConfig = Field(default_factory=TardisMachineConfig)
+    index: IndexConfig = Field(default_factory=IndexConfig)
 
     def get_profile(self, name: str) -> DownloadProfile:
         """Get a download profile by name."""

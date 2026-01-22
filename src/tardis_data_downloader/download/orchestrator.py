@@ -15,6 +15,7 @@ from loguru import logger
 
 from tardis_data_downloader.config.models import DownloadConfig, DownloadProfile
 from tardis_data_downloader.download.state import DownloadState
+from tardis_data_downloader.index.manager import MetadataIndexManager
 
 
 def date_range(
@@ -60,6 +61,7 @@ class DownloadOrchestrator:
         self,
         config: DownloadConfig,
         state: DownloadState | None = None,
+        index_manager: MetadataIndexManager | None = None,
     ):
         """
         Initialize orchestrator.
@@ -67,9 +69,19 @@ class DownloadOrchestrator:
         Args:
             config: Download configuration
             state: Optional state tracker (created from config if not provided)
+            index_manager: Optional index manager (created from config if not provided)
         """
         self.config = config
         self.state = state or DownloadState(config.incremental.state_file)
+
+        # Initialize index manager if indexing is enabled
+        if config.index.enabled:
+            self.index_manager = index_manager or MetadataIndexManager(
+                root_dir=config.storage.root_dir,
+                index_file=config.index.index_file,
+            )
+        else:
+            self.index_manager = None
 
     def _get_file_path(
         self,
@@ -289,6 +301,20 @@ class DownloadOrchestrator:
                     files_count=len(dates),
                 )
                 self.state.save()
+
+                # Update index if enabled
+                if self.index_manager and self.config.index.auto_update:
+                    for d in dates:
+                        file_path = self._get_file_path(exchange, data_type, d, symbol)
+                        if file_path.exists():
+                            self.index_manager.update_symbol(
+                                exchange=exchange,
+                                data_type=data_type,
+                                symbol=symbol,
+                                date=d.isoformat(),
+                                file_size=file_path.stat().st_size,
+                            )
+                    self.index_manager.save()
 
                 results["success"] += len(dates)
                 results["details"].append(

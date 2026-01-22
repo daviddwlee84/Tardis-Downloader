@@ -1,0 +1,273 @@
+# ML Quant Download Configuration
+# ================================
+# Comprehensive crypto data download for ML return prediction models.
+# Total estimated size: ~6.2 TB
+#
+# Usage:
+#   td-fire config-download --config configs/ml_quant_download.yaml --profile btc_full --dry-run
+#   td-fire config-download --config configs/ml_quant_download.yaml --profile btc_full
+#   td-fire incremental --config configs/ml_quant_download.yaml --profile btc_full
+
+version: "1.0"
+
+# Storage settings - RAID storage with 87TB available
+storage:
+  root_dir: "/mnt/raid/crypto"
+  format: "csv"
+
+# ============================================================================
+# DOWNLOAD PROFILES
+# ============================================================================
+
+profiles:
+  # --------------------------------------------------------------------------
+  # Profile 1: btc_full - BTC with ALL data types including L2
+  # Estimated size: ~195 GB
+  # --------------------------------------------------------------------------
+  btc_full:
+    description: "BTC-PERPETUAL with all data types including L2 orderbook"
+    exchanges:
+      - binance-futures
+    data_types:
+      - trades
+      - quotes
+      - incremental_book_L2
+      - book_snapshot_25
+      - book_snapshot_5
+      - derivative_ticker
+      - liquidations
+    symbols:
+      binance-futures:
+        - BTCUSDT
+    date_range:
+      start: "2019-11-17"  # Earliest available for binance-futures
+      end: null  # Today
+
+  # --------------------------------------------------------------------------
+  # Profile 2: eth_sol_full - ETH & SOL with all data types (except L2)
+  # Estimated size: ~159 GB
+  # --------------------------------------------------------------------------
+  eth_sol_full:
+    description: "ETH and SOL perpetuals with all data types except L2"
+    exchanges:
+      - binance-futures
+    data_types:
+      - trades
+      - quotes
+      - book_snapshot_25
+      - book_snapshot_5
+      - derivative_ticker
+      - liquidations
+    symbols:
+      binance-futures:
+        - ETHUSDT
+        - SOLUSDT
+    date_range:
+      start: "2019-11-27"  # ETH earliest; SOL available from 2020-08-31
+      end: null
+
+  # --------------------------------------------------------------------------
+  # Profile 3: altcoins_main - Top 150 altcoins with main data types
+  # Estimated size: ~5.8 TB
+  # --------------------------------------------------------------------------
+  altcoins_main:
+    description: "Top 150 altcoins - trades, book_snapshot_25, liquidations, derivative_ticker"
+    exchanges:
+      - binance-futures
+    data_types:
+      - trades
+      - book_snapshot_25
+      - liquidations
+      - derivative_ticker
+    symbols:
+      binance-futures:
+        # === Legacy/Major (15) ===
+        - BCHUSDT
+        - XRPUSDT
+        - EOSUSDT
+        - LTCUSDT
+        - TRXUSDT
+        - ETCUSDT
+        - LINKUSDT
+        - XLMUSDT
+        - ADAUSDT
+        - XMRUSDT
+        - DASHUSDT
+        - ZECUSDT
+        - XTZUSDT
+        - ATOMUSDT
+        - BNBUSDT
+        # === Layer 1s (20) ===
+        - ONTUSDT
+        - IOTAUSDT
+        - VETUSDT
+        - NEOUSDT
+        - THETAUSDT
+        - ALGOUSDT
+        - ZILUSDT
+        - DOTUSDT
+        - AVAXUSDT
+        - FTMUSDT
+        - NEARUSDT
+        - FILUSDT
+        - HBARUSDT
+        - EGLDUSDT
+        - ICPUSDT
+        - FLOWUSDT
+        - INJUSDT
+        - KLAYUSDT
+        - ROSEUSDT
+        - CELOUSDT
+        # === Layer 2s/Scaling (10) ===
+        - MATICUSDT
+        - OPUSDT
+        - IMXUSDT
+        - ARBUSDT
+        - SKLUSDT
+        - LRCUSDT
+        - CTSIUSDT
+        - STXUSDT
+        - METISUSDT
+        - MANTAUSDT
+        # === DeFi (25) ===
+        - COMPUSDT
+        - MKRUSDT
+        - SNXUSDT
+        - CRVUSDT
+        - BALUSDT
+        - YFIUSDT
+        - SUSHIUSDT
+        - RUNEUSDT
+        - AAVEUSDT
+        - UNIUSDT
+        - 1INCHUSDT
+        - DYDXUSDT
+        - GMXUSDT
+        - LDOUSDT
+        - PENDLEUSDT
+        - ALPACAUSDT
+        - WOOUSDT
+        - STGUSDT
+        - CVXUSDT
+        - API3USDT
+        - ANKRUSDT
+        - BANDUSDT
+        - KAVAUSDT
+        - RENUSDT
+        - OCEANUSDT
+        # === Meme Coins (15) ===
+        - DOGEUSDT
+        - 1000SHIBUSDT
+        - PEOPLEUSDT
+        - 1000LUNCUSDT
+        - LUNA2USDT
+        - FLOKIUSDT
+        - PEPEUSDT
+        - BONKUSDT
+        - WIFUSDT
+        - BOMEUSDT
+        - MEMEUSDT
+        - TURBOUSDT
+        - NEIROUSDT
+        - DOGSUSDT
+        - SATSUSDT
+        # === AI/Compute (10) ===
+        - GRTUSDT
+        - FETUSDT
+        - RLCUSDT
+        # OCEANUSDT already in DeFi
+        - AKROUSDT
+        - PHBUSDT
+        - ARKMUSDT
+        - WLDUSDT
+        - TAOUSDT
+        - RENDERUSDT
+        # === Gaming/Metaverse (15) ===
+        - SANDUSDT
+        - MANAUSDT
+        - AXSUSDT
+        - ENJUSDT
+        - GALAUSDT
+        - CHRUSDT
+        - ALICEUSDT
+        - TLMUSDT
+        - YGGUSDT
+        - MAGICUSDT
+        - GMTUSDT
+        - APEUSDT
+        - XAIUSDT
+        - PIXELUSDT
+        - PORTALUSDT
+        # === Infrastructure (15) ===
+        - STORJUSDT
+        - BLZUSDT
+        - SCUSDT
+        - ARUSDT
+        - KSMUSDT
+        - COTIUSDT
+        - CELRUSDT
+        - HOTUSDT
+        - NKNUSDT
+        - IOTXUSDT
+        - AUDIOUSDT
+        - ENSUSDT
+        - LPTUSDT
+        - CVCUSDT
+        - MASKUSDT
+        # === Others/High Volume (25) ===
+        - BATUSDT
+        - QTUMUSDT
+        - IOSTUSDT
+        - KNCUSDT
+        - ZRXUSDT
+        - OMGUSDT
+        - SXPUSDT
+        - WAVESUSDT
+        - TRBUSDT
+        - SRMUSDT
+        - ICXUSDT
+        - TOMOUSDT
+        - BELUSDT
+        - CTKUSDT
+        - ALPHAUSDT
+        - ZENUSDT
+        - REEFUSDT
+        - LITUSDT
+        - SFPUSDT
+        - C98USDT
+        - ATAUSDT
+        - GALUSDT
+        - DARUSDT
+        - JASMYUSDT
+        - LEVERUSDT
+    date_range:
+      start: "2022-01-01"
+      end: null
+
+# ============================================================================
+# INCREMENTAL DOWNLOAD SETTINGS
+# ============================================================================
+
+incremental:
+  enabled: true
+  state_file: "/mnt/raid/crypto/.tardis_download_state.json"
+  auto_continue: true
+
+# ============================================================================
+# DOWNLOAD BEHAVIOR
+# ============================================================================
+
+download:
+  concurrency: 10  # Higher concurrency for faster downloads
+  skip_existing: true
+  retry_attempts: 5
+  timeout_seconds: 600  # Longer timeout for large L2 files
+
+# ============================================================================
+# INDEX SETTINGS (for metadata indexing)
+# ============================================================================
+
+index:
+  enabled: true
+  index_file: "/mnt/raid/crypto/.tardis_index.json"
+  auto_update: true  # Update index after each download

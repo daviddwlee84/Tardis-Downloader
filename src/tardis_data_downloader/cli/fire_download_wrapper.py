@@ -435,6 +435,236 @@ class TardisCLI:
         for data_type, description in data_types:
             print(f"  - {data_type:25s} {description}")
 
+    # =======================
+    # Index Commands
+    # =======================
+
+    def index_build(
+        self,
+        root_dir: str = None,
+        index_file: str = None,
+        config: str = None,
+        update_only: bool = False,
+    ):
+        """
+        Build metadata index from existing files.
+
+        Args:
+            root_dir: Root directory containing data (overrides config)
+            index_file: Path to index file (overrides config)
+            config: Optional config file to read settings from
+            update_only: If True, only update existing index (faster)
+        """
+        try:
+            from tardis_data_downloader.index.manager import MetadataIndexManager
+
+            # Determine root_dir and index_file
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                root_dir = root_dir or cfg.storage.root_dir
+                index_file = index_file or cfg.index.index_file
+
+            if not root_dir:
+                root_dir = "./datasets"
+
+            manager = MetadataIndexManager(root_dir=root_dir, index_file=index_file)
+
+            if update_only:
+                # Load existing index and rebuild
+                manager.load()
+                print(f"Updating existing index at {manager.index_file}...")
+            else:
+                print(f"Building index from {root_dir}...")
+
+            index = manager.build(show_progress=True)
+            manager.save()
+
+            print("\n=== Index Build Complete ===")
+            print(f"Total files: {index.total_files:,}")
+            print(f"Total size: {index.total_size_gb:.2f} GB ({index.total_size_tb:.4f} TB)")
+            print(f"Exchanges: {index.exchange_count}")
+            print(f"Index saved to: {manager.index_file}")
+
+        except Exception as e:
+            print(f"Index build failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def index_status(
+        self,
+        root_dir: str = None,
+        index_file: str = None,
+        config: str = None,
+    ):
+        """
+        Show index statistics.
+
+        Args:
+            root_dir: Root directory containing data
+            index_file: Path to index file
+            config: Optional config file to read settings from
+        """
+        try:
+            from tardis_data_downloader.index.manager import MetadataIndexManager
+
+            # Determine root_dir and index_file
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                root_dir = root_dir or cfg.storage.root_dir
+                index_file = index_file or cfg.index.index_file
+
+            if not root_dir:
+                root_dir = "./datasets"
+
+            manager = MetadataIndexManager(root_dir=root_dir, index_file=index_file)
+            status = manager.get_status()
+
+            print("\n=== Index Status ===")
+            print(f"Version: {status['version']}")
+            print(f"Root directory: {status['root_dir']}")
+            print(f"Last updated: {status['last_updated']}")
+            print(f"\nTotal files: {status['total_files']:,}")
+            print(f"Total size: {status['total_size_gb']:.2f} GB ({status['total_size_tb']:.4f} TB)")
+            print(f"Exchanges: {status['exchange_count']}")
+
+            if status['exchanges']:
+                print("\n=== Exchange Breakdown ===")
+                for exchange, info in status['exchanges'].items():
+                    print(f"\n{exchange}:")
+                    print(f"  Data types: {info['data_types']}")
+                    print(f"  Symbols: {info['symbols']}")
+                    print(f"  Files: {info['files']:,}")
+                    print(f"  Size: {info['size_gb']:.2f} GB")
+
+        except Exception as e:
+            print(f"Index status failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def index_query(
+        self,
+        root_dir: str = None,
+        index_file: str = None,
+        config: str = None,
+        exchange: str = None,
+        data_type: str = None,
+        symbol: str = None,
+        limit: int = 50,
+    ):
+        """
+        Query the metadata index.
+
+        Args:
+            root_dir: Root directory containing data
+            index_file: Path to index file
+            config: Optional config file to read settings from
+            exchange: Filter by exchange (optional)
+            data_type: Filter by data type (optional)
+            symbol: Filter by symbol (optional)
+            limit: Maximum results to show (default: 50)
+        """
+        try:
+            from tardis_data_downloader.index.manager import MetadataIndexManager
+
+            # Determine root_dir and index_file
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                root_dir = root_dir or cfg.storage.root_dir
+                index_file = index_file or cfg.index.index_file
+
+            if not root_dir:
+                root_dir = "./datasets"
+
+            manager = MetadataIndexManager(root_dir=root_dir, index_file=index_file)
+
+            print("\n=== Index Query Results ===")
+            if exchange:
+                print(f"Exchange: {exchange}")
+            if data_type:
+                print(f"Data type: {data_type}")
+            if symbol:
+                print(f"Symbol: {symbol}")
+            print()
+
+            count = 0
+            for result in manager.query(exchange=exchange, data_type=data_type, symbol=symbol):
+                if count >= limit:
+                    print(f"\n... (showing first {limit} results)")
+                    break
+
+                print(
+                    f"{result.exchange}/{result.data_type}/{result.symbol}: "
+                    f"{result.first_date} to {result.last_date} "
+                    f"({result.file_count} files, {result.total_size_mb:.1f} MB)"
+                )
+                count += 1
+
+            if count == 0:
+                print("No results found.")
+            else:
+                print(f"\nTotal: {count} entries")
+
+        except Exception as e:
+            print(f"Index query failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def index_verify(
+        self,
+        root_dir: str = None,
+        index_file: str = None,
+        config: str = None,
+    ):
+        """
+        Verify index against actual files on disk.
+
+        Args:
+            root_dir: Root directory containing data
+            index_file: Path to index file
+            config: Optional config file to read settings from
+        """
+        try:
+            from tardis_data_downloader.index.manager import MetadataIndexManager
+
+            # Determine root_dir and index_file
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                root_dir = root_dir or cfg.storage.root_dir
+                index_file = index_file or cfg.index.index_file
+
+            if not root_dir:
+                root_dir = "./datasets"
+
+            manager = MetadataIndexManager(root_dir=root_dir, index_file=index_file)
+
+            print("Verifying index against disk...")
+            results = manager.verify()
+
+            print("\n=== Verification Results ===")
+            print(f"Index files: {results['index_files']:,}")
+            print(f"Disk files: {results['disk_files']:,}")
+            print(f"Verified: {'✓ PASS' if results['verified'] else '✗ FAIL'}")
+
+            if not results['verified']:
+                diff = results.get('difference', 0)
+                if diff > 0:
+                    print(f"\n{diff} files on disk not in index (run index-build to update)")
+                else:
+                    print(f"\n{abs(diff)} files in index not on disk (may have been deleted)")
+
+        except Exception as e:
+            print(f"Index verify failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
 
 def main():
     fire.Fire(TardisCLI)
