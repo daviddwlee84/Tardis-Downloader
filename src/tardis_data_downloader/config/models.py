@@ -105,11 +105,21 @@ class IndexConfig(BaseModel):
     enabled: bool = Field(default=True, description="Enable metadata indexing")
     index_file: str = Field(
         default=".tardis_index.json",
-        description="Path to the metadata index file",
+        description="Path to the metadata index file (legacy JSON)",
     )
     auto_update: bool = Field(
         default=True,
         description="Automatically update index after downloads",
+    )
+    db_file: str = Field(
+        default=".tardis.db",
+        description="Path to the SQLite database file",
+    )
+    existing_check: Literal["index", "filesystem", "override"] = Field(
+        default="filesystem",
+        description="Method for checking existing files: "
+        "'index' uses SQLite DB, 'filesystem' uses Path.exists(), "
+        "'override' redownloads all",
     )
 
 

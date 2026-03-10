@@ -14,6 +14,7 @@ from typing import Generator
 from loguru import logger
 
 from tardis_data_downloader.config.models import DownloadConfig, DownloadProfile
+from tardis_data_downloader.db.connection import TardisDB
 from tardis_data_downloader.download.state import DownloadState
 from tardis_data_downloader.index.manager import MetadataIndexManager
 
@@ -62,6 +63,7 @@ class DownloadOrchestrator:
         config: DownloadConfig,
         state: DownloadState | None = None,
         index_manager: MetadataIndexManager | None = None,
+        db: TardisDB | None = None,
     ):
         """
         Initialize orchestrator.
@@ -70,6 +72,7 @@ class DownloadOrchestrator:
             config: Download configuration
             state: Optional state tracker (created from config if not provided)
             index_manager: Optional index manager (created from config if not provided)
+            db: Optional TardisDB instance (created from config if not provided)
         """
         self.config = config
         self.state = state or DownloadState(config.incremental.state_file)
@@ -82,6 +85,14 @@ class DownloadOrchestrator:
             )
         else:
             self.index_manager = None
+
+        # Initialize SQLite DB if index mode is "index"
+        if db:
+            self.db = db
+        elif config.index.enabled and config.index.existing_check == "index":
+            self.db = TardisDB(config.index.db_file)
+        else:
+            self.db = None
 
     def _get_file_path(
         self,
@@ -154,6 +165,7 @@ class DownloadOrchestrator:
         """
         tasks = []
         end_date = profile.date_range.get_end_date()
+        check_mode = self.config.index.existing_check
 
         for exchange in profile.exchanges:
             symbols = profile.symbols.get(exchange, [])
@@ -175,13 +187,30 @@ class DownloadOrchestrator:
                     else:
                         start = profile.date_range.start
 
-                    # Generate dates
-                    dates_to_download = []
-                    for d in date_range(start, end_date, inclusive="left"):
-                        if self.config.download.skip_existing:
-                            if self._file_exists(exchange, data_type, d, symbol):
-                                continue
-                        dates_to_download.append(d)
+                    # Generate all candidate dates
+                    all_candidates = list(date_range(start, end_date, inclusive="left"))
+
+                    if not all_candidates:
+                        continue
+
+                    # Filter based on check mode
+                    if check_mode == "override" or not self.config.download.skip_existing:
+                        dates_to_download = all_candidates
+                    elif check_mode == "index" and self.db:
+                        # Batch SQL query - much faster than individual stat() calls
+                        all_dates_str = [d.isoformat() for d in all_candidates]
+                        existing = self.db.file_repo.batch_file_exists(
+                            exchange, data_type, symbol, all_dates_str
+                        )
+                        dates_to_download = [
+                            d for d in all_candidates if d.isoformat() not in existing
+                        ]
+                    else:
+                        # Filesystem mode (default fallback)
+                        dates_to_download = [
+                            d for d in all_candidates
+                            if not self._file_exists(exchange, data_type, d, symbol)
+                        ]
 
                     if dates_to_download:
                         tasks.append(
@@ -301,6 +330,27 @@ class DownloadOrchestrator:
                     files_count=len(dates),
                 )
                 self.state.save()
+
+                # Update SQLite DB if enabled
+                if self.db:
+                    self.db.state_repo.update_state(
+                        profile=profile_name,
+                        exchange=exchange,
+                        symbol=symbol,
+                        data_type=data_type,
+                        last_date=max(dates).isoformat(),
+                        files_count=len(dates),
+                    )
+                    db_records = []
+                    for d in dates:
+                        file_path = self._get_file_path(exchange, data_type, d, symbol)
+                        if file_path.exists():
+                            db_records.append((
+                                exchange, data_type, symbol,
+                                d.isoformat(), file_path.stat().st_size
+                            ))
+                    if db_records:
+                        self.db.file_repo.bulk_insert_files(db_records)
 
                 # Update index if enabled
                 if self.index_manager and self.config.index.auto_update:

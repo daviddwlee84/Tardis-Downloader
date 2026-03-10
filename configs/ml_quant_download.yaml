@@ -271,3 +271,5 @@ index:
   enabled: true
   index_file: "/mnt/raid/crypto/.tardis_index.json"
   auto_update: true  # Update index after each download
+  db_file: "/mnt/raid/crypto/.tardis.db"
+  existing_check: "index"  # "index" (SQLite), "filesystem" (Path.exists), "override" (redownload all)

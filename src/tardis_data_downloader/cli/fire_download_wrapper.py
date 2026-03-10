@@ -666,6 +666,309 @@ class TardisCLI:
             sys.exit(1)
 
 
+    # =======================
+    # Database Commands
+    # =======================
+
+    def db_build(
+        self,
+        config: str = None,
+        root_dir: str = None,
+        db_file: str = None,
+    ):
+        """
+        Build SQLite database from existing files on disk.
+
+        Scans the filesystem and populates the database with file records.
+
+        Args:
+            config: Config file path (reads root_dir and db_file from it)
+            root_dir: Root directory containing data (overrides config)
+            db_file: Path to SQLite database file (overrides config)
+        """
+        try:
+            from tardis_data_downloader.db import TardisDB, TardisMigration
+
+            resolved_root, resolved_db = self._resolve_db_config(config, root_dir, db_file)
+
+            db = TardisDB(resolved_db)
+            migration = TardisMigration(db)
+
+            print(f"Building database from {resolved_root}...")
+            print(f"Database file: {resolved_db}")
+            count = migration.build_from_filesystem(resolved_root, show_progress=True)
+
+            stats = db.file_repo.get_total_stats()
+            print(f"\n=== Database Build Complete ===")
+            print(f"Files indexed: {count:,}")
+            print(f"Total size: {stats['total_size'] / (1024**3):.2f} GB")
+            print(f"Exchanges: {stats['exchanges']}")
+            print(f"Data types: {stats['data_types']}")
+            print(f"Symbols: {stats['symbols']}")
+
+            db.close()
+
+        except Exception as e:
+            print(f"Database build failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def db_migrate(
+        self,
+        config: str = None,
+        state_file: str = None,
+        db_file: str = None,
+    ):
+        """
+        Import existing JSON state file into SQLite database.
+
+        Args:
+            config: Config file path
+            state_file: Path to JSON state file (overrides config)
+            db_file: Path to SQLite database file (overrides config)
+        """
+        try:
+            from tardis_data_downloader.db import TardisDB, TardisMigration
+
+            resolved_state = state_file
+            resolved_db = db_file
+
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                resolved_state = resolved_state or cfg.incremental.state_file
+                resolved_db = resolved_db or cfg.index.db_file
+
+            resolved_state = resolved_state or ".tardis_download_state.json"
+            resolved_db = resolved_db or ".tardis.db"
+
+            print(f"Migrating state from {resolved_state}...")
+            print(f"Database file: {resolved_db}")
+
+            db = TardisDB(resolved_db)
+            migration = TardisMigration(db)
+            count = migration.migrate_json_state(resolved_state)
+
+            print(f"\n=== Migration Complete ===")
+            print(f"State records imported: {count}")
+
+            db.close()
+
+        except Exception as e:
+            print(f"Migration failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def db_status(
+        self,
+        config: str = None,
+        db_file: str = None,
+    ):
+        """
+        Show SQLite database statistics.
+
+        Args:
+            config: Config file path
+            db_file: Path to SQLite database file (overrides config)
+        """
+        try:
+            from tardis_data_downloader.db import TardisDB
+
+            resolved_db = db_file
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                resolved_db = resolved_db or cfg.index.db_file
+
+            resolved_db = resolved_db or ".tardis.db"
+
+            db = TardisDB(resolved_db)
+            stats = db.file_repo.get_total_stats()
+
+            print(f"\n=== Database Status ===")
+            print(f"Database: {resolved_db}")
+            print(f"Schema version: {db.get_metadata('schema_version')}")
+            print(f"\nFiles: {stats['total_files']:,}")
+            print(f"Total size: {stats['total_size'] / (1024**3):.2f} GB")
+            print(f"Exchanges: {stats['exchanges']}")
+            print(f"Data types: {stats['data_types']}")
+            print(f"Symbols: {stats['symbols']}")
+
+            # Show per-exchange breakdown
+            results = db.file_repo.query()
+            if results:
+                print(f"\n=== Per-Symbol Breakdown ===")
+                current_exchange = None
+                for r in results:
+                    if r["exchange"] != current_exchange:
+                        current_exchange = r["exchange"]
+                        print(f"\n  {current_exchange}:")
+                    size_mb = r["total_size"] / (1024**2) if r["total_size"] else 0
+                    print(
+                        f"    {r['data_type']}/{r['symbol']}: "
+                        f"{r['file_count']:,} files "
+                        f"({size_mb:.1f} MB) "
+                        f"[{r['first_date']} to {r['last_date']}]"
+                    )
+
+            # Show state info
+            profiles = db.state_repo.get_all_profiles()
+            if profiles:
+                print(f"\n=== Download State ===")
+                for profile in profiles:
+                    total = db.state_repo.get_total_files(profile)
+                    print(f"  {profile}: {total:,} files tracked")
+
+            db.close()
+
+        except Exception as e:
+            print(f"Database status failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def db_verify(
+        self,
+        config: str = None,
+        root_dir: str = None,
+        db_file: str = None,
+    ):
+        """
+        Verify database records against actual files on disk.
+
+        Args:
+            config: Config file path
+            root_dir: Root directory containing data (overrides config)
+            db_file: Path to SQLite database file (overrides config)
+        """
+        try:
+            from tardis_data_downloader.db import TardisDB, TardisMigration
+
+            resolved_root, resolved_db = self._resolve_db_config(config, root_dir, db_file)
+
+            db = TardisDB(resolved_db)
+            migration = TardisMigration(db)
+
+            print(f"Verifying database against {resolved_root}...")
+            results = migration.verify_against_filesystem(resolved_root)
+
+            print(f"\n=== Verification Results ===")
+            print(f"Database files: {results['db_files']:,}")
+            print(f"Disk files: {results['disk_files']:,}")
+            print(f"Verified: {'PASS' if results['verified'] else 'FAIL'}")
+
+            if results["on_disk_not_db"] > 0:
+                print(f"\n{results['on_disk_not_db']:,} files on disk not in database")
+                if results["missing_from_db_samples"]:
+                    print("  Samples:")
+                    for s in results["missing_from_db_samples"][:5]:
+                        print(f"    {s[0]}/{s[1]}/{s[3]}/{s[2]}")
+
+            if results["in_db_not_disk"] > 0:
+                print(f"\n{results['in_db_not_disk']:,} files in database not on disk")
+                if results["missing_from_disk_samples"]:
+                    print("  Samples:")
+                    for s in results["missing_from_disk_samples"][:5]:
+                        print(f"    {s[0]}/{s[1]}/{s[3]}/{s[2]}")
+
+            if not results["verified"]:
+                print("\nRun 'td-fire db-build' to rebuild the database.")
+
+            db.close()
+
+        except Exception as e:
+            print(f"Verification failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    def db_gaps(
+        self,
+        exchange: str,
+        data_type: str,
+        symbol: str,
+        config: str = None,
+        db_file: str = None,
+    ):
+        """
+        Show date coverage gaps for a specific symbol.
+
+        Args:
+            exchange: Exchange name
+            data_type: Data type
+            symbol: Symbol name
+            config: Config file path
+            db_file: Path to SQLite database file (overrides config)
+        """
+        try:
+            from tardis_data_downloader.db import TardisDB
+
+            resolved_db = db_file
+            if config:
+                from tardis_data_downloader.config.loader import ConfigLoader
+
+                loader = ConfigLoader(config)
+                cfg = loader.load()
+                resolved_db = resolved_db or cfg.index.db_file
+
+            resolved_db = resolved_db or ".tardis.db"
+
+            db = TardisDB(resolved_db)
+
+            # Show date range
+            date_range_result = db.file_repo.get_date_range(exchange, data_type, symbol)
+            if not date_range_result:
+                print(f"No records found for {exchange}/{data_type}/{symbol}")
+                db.close()
+                return
+
+            first, last = date_range_result
+            stats = db.file_repo.get_symbol_stats(exchange, data_type, symbol)
+
+            print(f"\n=== Coverage: {exchange}/{data_type}/{symbol} ===")
+            print(f"Date range: {first} to {last}")
+            print(f"Files: {stats['count']:,}")
+            print(f"Size: {stats['total_size'] / (1024**2):.1f} MB")
+
+            # Show gaps
+            gaps = db.file_repo.get_coverage_gaps(exchange, data_type, symbol)
+            if gaps:
+                total_gap_days = sum(g["days"] for g in gaps)
+                print(f"\n=== Gaps ({len(gaps)} gaps, {total_gap_days} days total) ===")
+                for gap in gaps:
+                    if gap["days"] == 1:
+                        print(f"  {gap['start']} (1 day)")
+                    else:
+                        print(f"  {gap['start']} to {gap['end']} ({gap['days']} days)")
+            else:
+                print("\nNo gaps found - coverage is continuous.")
+
+            db.close()
+
+        except Exception as e:
+            print(f"Gap analysis failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    @staticmethod
+    def _resolve_db_config(
+        config: str | None, root_dir: str | None, db_file: str | None
+    ) -> tuple[str, str]:
+        """Resolve root_dir and db_file from config or arguments."""
+        resolved_root = root_dir
+        resolved_db = db_file
+
+        if config:
+            from tardis_data_downloader.config.loader import ConfigLoader
+
+            loader = ConfigLoader(config)
+            cfg = loader.load()
+            resolved_root = resolved_root or cfg.storage.root_dir
+            resolved_db = resolved_db or cfg.index.db_file
+
+        resolved_root = resolved_root or "./datasets"
+        resolved_db = resolved_db or ".tardis.db"
+
+        return resolved_root, resolved_db
+
+
 def main():
     fire.Fire(TardisCLI)
 
