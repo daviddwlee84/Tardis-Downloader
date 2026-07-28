@@ -11,7 +11,7 @@
 #   ./scripts/daily_sync.sh --dry-run          # Dry run mode
 #
 # Cron example (run daily at 2 AM):
-#   0 2 * * * /home/taa/David/Tardis-Downloader/scripts/daily_sync.sh >> /var/log/tardis_sync.log 2>&1
+#   0 2 * * * /home/davidl/David/Tardis-Downloader/scripts/daily_sync.sh >> /var/log/tardis_sync.log 2>&1
 #
 # ============================================================================
 

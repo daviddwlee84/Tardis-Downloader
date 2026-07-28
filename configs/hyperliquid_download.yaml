@@ -1,0 +1,113 @@
+# Hyperliquid Download Configuration
+# =====================================
+# Hyperliquid perpetuals data for ML/quant research.
+# Data available from 2024-10-29 on Tardis.
+# Total estimated size: ~65 GB
+#
+# Note: Hyperliquid uses base asset only as symbol (BTC, ETH, SOL — no quote suffix)
+#
+# Usage:
+#   td-fire config-download --config configs/hyperliquid_download.yaml --profile hyperliquid_major --dry-run
+#   td-fire config-download --config configs/hyperliquid_download.yaml --profile hyperliquid_major
+#   td-fire incremental --config configs/hyperliquid_download.yaml --profile hyperliquid_major
+
+version: "1.0"
+
+# Storage settings - RAID storage
+storage:
+  root_dir: "/mnt/raid/crypto"
+  format: "csv"
+
+# ============================================================================
+# DOWNLOAD PROFILES
+# ============================================================================
+
+profiles:
+  # --------------------------------------------------------------------------
+  # Profile 1: hyperliquid_major - BTC, ETH, SOL perpetuals
+  # Estimated size: ~15 GB
+  # --------------------------------------------------------------------------
+  hyperliquid_major:
+    description: "Hyperliquid BTC/ETH/SOL perpetuals - trades, book snapshots, derivative ticker"
+    exchanges:
+      - hyperliquid
+    data_types:
+      - trades
+      - book_snapshot_25
+      - derivative_ticker
+    symbols:
+      hyperliquid:
+        - BTC
+        - ETH
+        - SOL
+    date_range:
+      start: "2024-10-29"  # Earliest available for Hyperliquid on Tardis
+      end: null  # Today
+
+  # --------------------------------------------------------------------------
+  # Profile 2: hyperliquid_altcoins - 20 altcoin perpetuals
+  # Estimated size: ~50 GB
+  # --------------------------------------------------------------------------
+  hyperliquid_altcoins:
+    description: "Hyperliquid top 20 altcoin perpetuals - trades, book snapshots, derivative ticker"
+    exchanges:
+      - hyperliquid
+    data_types:
+      - trades
+      - book_snapshot_25
+      - derivative_ticker
+    symbols:
+      hyperliquid:
+        - ARB
+        - AVAX
+        - BNB
+        - DOGE
+        - LINK
+        - MATIC
+        - NEAR
+        - APT
+        - OP
+        - INJ
+        - SEI
+        - TIA
+        - WIF
+        - PEPE
+        - BONK
+        - SUI
+        - TON
+        - ATOM
+        - FIL
+        - HBAR
+    date_range:
+      start: "2024-10-29"  # Earliest available for Hyperliquid on Tardis
+      end: null
+
+# ============================================================================
+# INCREMENTAL DOWNLOAD SETTINGS
+# ============================================================================
+
+incremental:
+  enabled: true
+  state_file: "/mnt/raid/crypto/.tardis_hl_state.json"
+  auto_continue: true
+
+# ============================================================================
+# DOWNLOAD BEHAVIOR
+# ============================================================================
+
+download:
+  concurrency: 10
+  skip_existing: true
+  retry_attempts: 5
+  timeout_seconds: 600
+
+# ============================================================================
+# INDEX SETTINGS
+# ============================================================================
+
+index:
+  enabled: true
+  index_file: "/mnt/raid/crypto/.tardis_hl_index.json"
+  auto_update: true
+  db_file: "/mnt/raid/crypto/.tardis_hl.db"
+  existing_check: "index"  # "index" (SQLite), "filesystem" (Path.exists), "override" (redownload all)

@@ -1,0 +1,303 @@
+# Spot Download Configuration
+# ============================
+# Binance spot and Coinbase spot data for ML/quant research.
+# Complements ml_quant_download.yaml (binance-futures).
+# Total estimated size: ~2.5–3 TB
+#
+# Usage:
+#   td-fire config-download --config configs/spot_download.yaml --profile binance_spot_btc --dry-run
+#   td-fire config-download --config configs/spot_download.yaml --profile binance_spot_btc
+#   td-fire incremental --config configs/spot_download.yaml --profile binance_spot_btc
+
+version: "1.0"
+
+# Storage settings - RAID storage
+storage:
+  root_dir: "/mnt/raid/crypto"
+  format: "csv"
+
+# ============================================================================
+# DOWNLOAD PROFILES
+# ============================================================================
+
+profiles:
+  # --------------------------------------------------------------------------
+  # Profile 1: binance_spot_btc - BTC spot from 2019
+  # Estimated size: ~25 GB
+  # --------------------------------------------------------------------------
+  binance_spot_btc:
+    description: "Binance spot BTC - trades and book snapshots from 2019"
+    exchanges:
+      - binance
+    data_types:
+      - trades
+      - book_snapshot_25
+    symbols:
+      binance:
+        - BTCUSDT
+    date_range:
+      start: "2019-03-01"  # Earliest available for binance spot
+      end: null  # Today
+
+  # --------------------------------------------------------------------------
+  # Profile 2: binance_spot_eth_sol - ETH & SOL spot
+  # Estimated size: ~40 GB
+  # --------------------------------------------------------------------------
+  binance_spot_eth_sol:
+    description: "Binance spot ETH and SOL - trades and book snapshots"
+    exchanges:
+      - binance
+    data_types:
+      - trades
+      - book_snapshot_25
+    symbols:
+      binance:
+        - ETHUSDT
+        - SOLUSDT
+    date_range:
+      start: "2019-09-01"  # ETH spot available from ~2019; SOL from 2020
+      end: null
+
+  # --------------------------------------------------------------------------
+  # Profile 3: binance_spot_altcoins - Top 150 altcoins spot
+  # Estimated size: ~2–3 TB
+  # --------------------------------------------------------------------------
+  binance_spot_altcoins:
+    description: "Top 150 altcoins spot - trades and book snapshots from 2022"
+    exchanges:
+      - binance
+    data_types:
+      - trades
+      - book_snapshot_25
+    symbols:
+      binance:
+        # === Legacy/Major (15) ===
+        - BCHUSDT
+        - XRPUSDT
+        - EOSUSDT
+        - LTCUSDT
+        - TRXUSDT
+        - ETCUSDT
+        - LINKUSDT
+        - XLMUSDT
+        - ADAUSDT
+        - XMRUSDT
+        - DASHUSDT
+        - ZECUSDT
+        - XTZUSDT
+        - ATOMUSDT
+        - BNBUSDT
+        # === Layer 1s (20) ===
+        - ONTUSDT
+        - IOTAUSDT
+        - VETUSDT
+        - NEOUSDT
+        - THETAUSDT
+        - ALGOUSDT
+        - ZILUSDT
+        - DOTUSDT
+        - AVAXUSDT
+        - FTMUSDT
+        - NEARUSDT
+        - FILUSDT
+        - HBARUSDT
+        - EGLDUSDT
+        - ICPUSDT
+        - FLOWUSDT
+        - INJUSDT
+        - KLAYUSDT
+        - ROSEUSDT
+        - CELOUSDT
+        # === Layer 2s/Scaling (10) ===
+        - MATICUSDT
+        - OPUSDT
+        - IMXUSDT
+        - ARBUSDT
+        - SKLUSDT
+        - LRCUSDT
+        - CTSIUSDT
+        - STXUSDT
+        - METISUSDT
+        - MANTAUSDT
+        # === DeFi (25) ===
+        - COMPUSDT
+        - MKRUSDT
+        - SNXUSDT
+        - CRVUSDT
+        - BALUSDT
+        - YFIUSDT
+        - SUSHIUSDT
+        - RUNEUSDT
+        - AAVEUSDT
+        - UNIUSDT
+        - 1INCHUSDT
+        - DYDXUSDT
+        - GMXUSDT
+        - LDOUSDT
+        - PENDLEUSDT
+        - ALPACAUSDT
+        - WOOUSDT
+        - STGUSDT
+        - CVXUSDT
+        - API3USDT
+        - ANKRUSDT
+        - BANDUSDT
+        - KAVAUSDT
+        - RENUSDT
+        - OCEANUSDT
+        # === Meme Coins (15) ===
+        - DOGEUSDT
+        - 1000SHIBUSDT
+        - PEOPLEUSDT
+        - 1000LUNCUSDT
+        - LUNA2USDT
+        - FLOKIUSDT
+        - PEPEUSDT
+        - BONKUSDT
+        - WIFUSDT
+        - BOMEUSDT
+        - MEMEUSDT
+        - TURBOUSDT
+        - NEIROUSDT
+        - DOGSUSDT
+        - SATSUSDT
+        # === AI/Compute (10) ===
+        - GRTUSDT
+        - FETUSDT
+        - RLCUSDT
+        # OCEANUSDT already in DeFi
+        - AKROUSDT
+        - PHBUSDT
+        - ARKMUSDT
+        - WLDUSDT
+        - TAOUSDT
+        - RENDERUSDT
+        # === Gaming/Metaverse (15) ===
+        - SANDUSDT
+        - MANAUSDT
+        - AXSUSDT
+        - ENJUSDT
+        - GALAUSDT
+        - CHRUSDT
+        - ALICEUSDT
+        - TLMUSDT
+        - YGGUSDT
+        - MAGICUSDT
+        - GMTUSDT
+        - APEUSDT
+        - XAIUSDT
+        - PIXELUSDT
+        - PORTALUSDT
+        # === Infrastructure (15) ===
+        - STORJUSDT
+        - BLZUSDT
+        - SCUSDT
+        - ARUSDT
+        - KSMUSDT
+        - COTIUSDT
+        - CELRUSDT
+        - HOTUSDT
+        - NKNUSDT
+        - IOTXUSDT
+        - AUDIOUSDT
+        - ENSUSDT
+        - LPTUSDT
+        - CVCUSDT
+        - MASKUSDT
+        # === Others/High Volume (25) ===
+        - BATUSDT
+        - QTUMUSDT
+        - IOSTUSDT
+        - KNCUSDT
+        - ZRXUSDT
+        - OMGUSDT
+        - SXPUSDT
+        - WAVESUSDT
+        - TRBUSDT
+        - SRMUSDT
+        - ICXUSDT
+        - TOMOUSDT
+        - BELUSDT
+        - CTKUSDT
+        - ALPHAUSDT
+        - ZENUSDT
+        - REEFUSDT
+        - LITUSDT
+        - SFPUSDT
+        - C98USDT
+        - ATAUSDT
+        - GALUSDT
+        - DARUSDT
+        - JASMYUSDT
+        - LEVERUSDT
+    date_range:
+      start: "2022-01-01"
+      end: null
+
+  # --------------------------------------------------------------------------
+  # Profile 4: coinbase_main - Top 20 Coinbase pairs
+  # Estimated size: ~50 GB
+  # Note: Coinbase uses dash-separated symbol format (BTC-USD)
+  # --------------------------------------------------------------------------
+  coinbase_main:
+    description: "Coinbase spot - top 20 pairs, trades and book snapshots from 2019"
+    exchanges:
+      - coinbase
+    data_types:
+      - trades
+      - book_snapshot_25
+    symbols:
+      coinbase:
+        - BTC-USD
+        - ETH-USD
+        - SOL-USD
+        - AVAX-USD
+        - LINK-USD
+        - DOT-USD
+        - ADA-USD
+        - MATIC-USD
+        - DOGE-USD
+        - XRP-USD
+        - LTC-USD
+        - UNI-USD
+        - AAVE-USD
+        - ATOM-USD
+        - NEAR-USD
+        - FIL-USD
+        - COMP-USD
+        - MKR-USD
+        - SNX-USD
+        - CRV-USD
+    date_range:
+      start: "2019-03-30"  # Earliest available for coinbase on Tardis
+      end: null
+
+# ============================================================================
+# INCREMENTAL DOWNLOAD SETTINGS
+# ============================================================================
+
+incremental:
+  enabled: true
+  state_file: "/mnt/raid/crypto/.tardis_spot_state.json"
+  auto_continue: true
+
+# ============================================================================
+# DOWNLOAD BEHAVIOR
+# ============================================================================
+
+download:
+  concurrency: 10
+  skip_existing: true
+  retry_attempts: 5
+  timeout_seconds: 600
+
+# ============================================================================
+# INDEX SETTINGS
+# ============================================================================
+
+index:
+  enabled: true
+  index_file: "/mnt/raid/crypto/.tardis_spot_index.json"
+  auto_update: true
+  db_file: "/mnt/raid/crypto/.tardis_spot.db"
+  existing_check: "index"  # "index" (SQLite), "filesystem" (Path.exists), "override" (redownload all)
